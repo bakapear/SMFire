@@ -4,6 +4,10 @@
 #include <sourcemod>
 #include <tf2_stocks>
 
+float fHeadScale[MAXPLAYERS + 1];
+float fTorsoScale[MAXPLAYERS + 1];
+float fHandScale[MAXPLAYERS + 1];
+
 public Plugin myinfo =  {
 	name = "SM_Fire", 
 	author = "pear", 
@@ -15,6 +19,27 @@ public Plugin myinfo =  {
 public void OnPluginStart() {
 	LoadTranslations("common.phrases");
 	RegAdminCmd("sm_fire", sm_fire, ADMFLAG_BAN, "[SM] Usage: sm_fire <target> <action> <value>");
+	for (int i = 1; i <= MaxClients; i++) {
+		fHeadScale[i] = 1.0;
+		fTorsoScale[i] = 1.0;
+		fHandScale[i] = 1.0;
+	}
+}
+
+public void OnGameFrame() {
+	for (int i = 1; i <= MaxClients; i++) {
+		if (IsClientInGame(i) && IsPlayerAlive(i)) {
+			if (fHeadScale[i] != 1.0) {
+				SetEntPropFloat(i, Prop_Send, "m_flHeadScale", fHeadScale[i]);
+			}
+			if (fTorsoScale[i] != 1.0) {
+				SetEntPropFloat(i, Prop_Send, "m_flTorsoScale", fTorsoScale[i]);
+			}
+			if (fHandScale[i] != 1.0) {
+				SetEntPropFloat(i, Prop_Send, "m_flHandScale", fHandScale[i]);
+			}
+		}
+	}
 }
 
 public Action sm_fire(int client, int args) {
@@ -286,7 +311,8 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 	else if (StrEqual(action, "setheadscale", false)) {
 		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
 		if (StrEqual(ename, "player")) {
-			SetEntPropFloat(itarget, Prop_Send, "m_flHeadScale", StringToFloat(value));
+			fHeadScale[client] = StringToFloat(value);
+			SetEntPropFloat(itarget, Prop_Send, "m_flHeadScale", fHeadScale[itarget]);
 		}
 		else {
 			PrintToChat(client, "[SM] Target must be a player!");
@@ -295,7 +321,8 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 	else if (StrEqual(action, "settorsoscale", false)) {
 		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
 		if (StrEqual(ename, "player")) {
-			SetEntPropFloat(itarget, Prop_Send, "m_flTorsoScale", StringToFloat(value));
+			fTorsoScale[client] = StringToFloat(value);
+			SetEntPropFloat(itarget, Prop_Send, "m_flTorsoScale", fTorsoScale[itarget]);
 		}
 		else {
 			PrintToChat(client, "[SM] Target must be a player!");
@@ -304,7 +331,8 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 	else if (StrEqual(action, "sethandscale", false)) {
 		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
 		if (StrEqual(ename, "player")) {
-			SetEntPropFloat(itarget, Prop_Send, "m_flHandScale", StringToFloat(value));
+			fHandScale[client] = StringToFloat(value);
+			SetEntPropFloat(itarget, Prop_Send, "m_flHandScale", fHandScale[itarget]);
 		}
 		else {
 			PrintToChat(client, "[SM] Target must be a player!");
@@ -313,10 +341,11 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 	else if (StrEqual(action, "resetscale", false)) {
 		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
 		if (StrEqual(ename, "player")) {
-			SetEntPropFloat(itarget, Prop_Send, "m_flModelScale", 1.0);
-			SetEntPropFloat(itarget, Prop_Send, "m_flHeadScale", 1.0);
-			SetEntPropFloat(itarget, Prop_Send, "m_flTorsoScale", 1.0);
-			SetEntPropFloat(itarget, Prop_Send, "m_flHandScale", 1.0);
+			fHeadScale[itarget] = 1.0;
+			fTorsoScale[itarget] = 1.0;
+			fHandScale[itarget] = 1.0;
+			SetVariantString("1.0");
+			AcceptEntityInput(itarget, "setmodelscale");
 		}
 		else {
 			PrintToChat(client, "[SM] Target must be a player!");
@@ -350,6 +379,4 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 			SetEntProp(itarget, Prop_Send, "m_bUseClassAnimations", TF2_GetPlayerClass(itarget));
 		}
 	}
-	
-	LogAction(client, itarget, "[SMFIRE] %L -> %N triggered %s %s on %N", client, action, value, itarget);
 } 
