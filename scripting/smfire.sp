@@ -248,6 +248,22 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		entang[2] += StringToFloat(num[2]);
 		TeleportEntity(itarget, NULL_VECTOR, entang, NULL_VECTOR);
 	}
+	else if (StrEqual(action, "setorg", false)) {
+		float entorg[3]; GetEntPropVector(itarget, Prop_Data, "m_vecOrigin", entorg);
+		char num[32][6]; ExplodeString(value, " ", num, 6, sizeof(num));
+		entorg[0] = StringToFloat(num[0]);
+		entorg[1] = StringToFloat(num[1]);
+		entorg[2] = StringToFloat(num[2]);
+		TeleportEntity(itarget, entorg, NULL_VECTOR, NULL_VECTOR);
+	}
+	else if (StrEqual(action, "setang", false)) {
+		float entang[3]; GetEntPropVector(itarget, Prop_Data, "m_angRotation", entang);
+		char num[32][6]; ExplodeString(value, " ", num, 6, sizeof(num));
+		entang[0] = StringToFloat(num[0]);
+		entang[1] = StringToFloat(num[1]);
+		entang[2] = StringToFloat(num[2]);
+		TeleportEntity(itarget, NULL_VECTOR, entang, NULL_VECTOR);
+	}
 	else if (StrEqual(action, "copy", false)) {
 		if (multiple == false) {
 			char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
