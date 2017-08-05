@@ -310,6 +310,18 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 			PrintToChat(client, "[SM] Target must be a player!");
 		}
 	}
+	else if (StrEqual(action, "resetscale", false)) {
+		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
+		if (StrEqual(ename, "player")) {
+			SetEntPropFloat(itarget, Prop_Send, "m_flModelScale", 1.0);
+			SetEntPropFloat(itarget, Prop_Send, "m_flHeadScale", 1.0);
+			SetEntPropFloat(itarget, Prop_Send, "m_flTorsoScale", 1.0);
+			SetEntPropFloat(itarget, Prop_Send, "m_flHandScale", 1.0);
+		}
+		else {
+			PrintToChat(client, "[SM] Target must be a player!");
+		}
+	}
 	else if (StrEqual(action, "fp", false || StrEqual(action, "firstperson", false))) {
 		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
 		if (StrEqual(ename, "player")) {
