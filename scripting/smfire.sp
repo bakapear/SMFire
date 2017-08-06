@@ -7,6 +7,7 @@
 float fHeadScale[MAXPLAYERS + 1];
 float fTorsoScale[MAXPLAYERS + 1];
 float fHandScale[MAXPLAYERS + 1];
+bool bThirdperson[MAXPLAYERS + 1];
 
 public Plugin myinfo =  {
 	name = "SM_Fire", 
@@ -19,11 +20,13 @@ public Plugin myinfo =  {
 public void OnPluginStart() {
 	LoadTranslations("common.phrases");
 	RegAdminCmd("sm_fire", sm_fire, ADMFLAG_BAN, "[SM] Usage: sm_fire <target> <action> <value>");
+	HookEvent("player_spawn", event_playerspawn, EventHookMode_Post);
 	for (int i = 1; i <= MaxClients; i++) {
 		fHeadScale[i] = 1.0;
 		fTorsoScale[i] = 1.0;
 		fHandScale[i] = 1.0;
-	}
+		bThirdperson[i] = false;
+	} 
 }
 
 public void OnGameFrame() {
@@ -39,6 +42,14 @@ public void OnGameFrame() {
 				SetEntPropFloat(i, Prop_Send, "m_flHandScale", fHandScale[i]);
 			}
 		}
+	}
+}
+
+public Action event_playerspawn(Handle event, char[] name, bool dontbroadcast) {
+	int client = GetClientOfUserId(GetEventInt(event, "userid"));
+	if(bThirdperson[client] == true) {
+		SetVariantInt(1);
+		AcceptEntityInput(client, "SetForcedTauntCam");
 	}
 }
 
@@ -249,19 +260,53 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		TeleportEntity(itarget, NULL_VECTOR, entang, NULL_VECTOR);
 	}
 	else if (StrEqual(action, "setorg", false)) {
-		float entorg[3]; GetEntPropVector(itarget, Prop_Data, "m_vecOrigin", entorg);
-		char num[32][6]; ExplodeString(value, " ", num, 6, sizeof(num));
-		entorg[0] = StringToFloat(num[0]);
-		entorg[1] = StringToFloat(num[1]);
-		entorg[2] = StringToFloat(num[2]);
+		float entorg[3];
+		if (StrEqual(value, "!self", false)) {
+			GetClientEyePosition(client, entorg);
+		}
+		else if (StrEqual(value, "!picker", false)) {
+			int target = GetClientAimTarget(client, true);
+			GetClientEyePosition(target, entorg);
+		}
+		else if (StrContains(value, "@", false)) {
+			strcopy(value, 64, value[1]);
+			int target = FindTarget(client, value, false, false);
+			if (itarget != -1) {
+				GetClientEyePosition(target, entorg);
+			}
+		}
+		else {
+			GetEntPropVector(itarget, Prop_Data, "m_vecOrigin", entorg);
+			char num[32][6]; ExplodeString(value, " ", num, 6, sizeof(num));
+			entorg[0] = StringToFloat(num[0]);
+			entorg[1] = StringToFloat(num[1]);
+			entorg[2] = StringToFloat(num[2]);
+		}
 		TeleportEntity(itarget, entorg, NULL_VECTOR, NULL_VECTOR);
 	}
 	else if (StrEqual(action, "setang", false)) {
-		float entang[3]; GetEntPropVector(itarget, Prop_Data, "m_angRotation", entang);
-		char num[32][6]; ExplodeString(value, " ", num, 6, sizeof(num));
-		entang[0] = StringToFloat(num[0]);
-		entang[1] = StringToFloat(num[1]);
-		entang[2] = StringToFloat(num[2]);
+		float entang[3];
+		if (StrEqual(value, "!self", false)) {
+			GetClientEyeAngles(client, entang);
+		}
+		else if (StrEqual(value, "!picker", false)) {
+			int target = GetClientAimTarget(client, true);
+			GetClientEyeAngles(target, entang);
+		}
+		else if (StrContains(value, "@", false)) {
+			strcopy(value, 64, value[1]);
+			int target = FindTarget(client, value, false, false);
+			if (itarget != -1) {
+				GetClientEyeAngles(target, entang);
+			}
+		}
+		else {
+			GetEntPropVector(itarget, Prop_Data, "m_angRotation", entang);
+			char num[32][6]; ExplodeString(value, " ", num, 6, sizeof(num));
+			entang[0] = StringToFloat(num[0]);
+			entang[1] = StringToFloat(num[1]);
+			entang[2] = StringToFloat(num[2]);
+		}
 		TeleportEntity(itarget, NULL_VECTOR, entang, NULL_VECTOR);
 	}
 	else if (StrEqual(action, "copy", false)) {
@@ -367,7 +412,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 			PrintToChat(client, "[SM] Target must be a player!");
 		}
 	}
-	else if (StrEqual(action, "fp", false || StrEqual(action, "firstperson", false))) {
+	else if (StrEqual(action, "fp", false) || StrEqual(action, "firstperson", false)) {
 		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
 		if (StrEqual(ename, "player")) {
 			SetVariantInt(0);
