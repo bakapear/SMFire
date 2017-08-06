@@ -506,6 +506,46 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 			}
 			
 		}
+		else {
+			if (iCounter == 1)
+			PrintToChat(client, "[SM] Target must be a player!");
+		}
+	}
+	else if (StrEqual(action, "addcond", false)) {
+		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
+		if (StrEqual(ename, "player")) {
+			if (StrEqual(value, "")) {
+				if (iCounter == 1)
+				PrintToChat(client, "[SM] addcond <condition>");
+			}
+			else {
+				int condition = StringToInt(value);
+				TF2_AddCondition(itarget, view_as<TFCond>(condition));
+			}
+			
+		}
+		else {
+			if (iCounter == 1)
+			PrintToChat(client, "[SM] Target must be a player!");
+		}
+	}
+	else if (StrEqual(action, "removecond", false)) {
+		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
+		if (StrEqual(ename, "player")) {
+			if (StrEqual(value, "")) {
+				if (iCounter == 1)
+				PrintToChat(client, "[SM] removecond <condition>");
+			}
+			else {
+				int condition = StringToInt(value);
+				TF2_RemoveCondition(itarget, view_as<TFCond>(condition));
+			}
+			
+		}
+		else {
+			if (iCounter == 1)
+			PrintToChat(client, "[SM] Target must be a player!");
+		}
 	}
 	else {
 		SetVariantString(value);
