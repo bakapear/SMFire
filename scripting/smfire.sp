@@ -216,8 +216,13 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 	else if (StrEqual(action, "removeslot", false)) {
 		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
 		if (StrEqual(ename, "player")) {
-			int ivalue = StringToInt(value);
-			TF2_RemoveWeaponSlot(itarget, ivalue);
+			if (StrEqual(value, "")) {
+				PrintToChat(client, "[SM] removeslot <value>");
+			}
+			else {
+				int ivalue = StringToInt(value);
+				TF2_RemoveWeaponSlot(itarget, ivalue);
+			}
 		}
 		else {
 			PrintToChat(client, "[SM] Target must be a player!");
@@ -226,17 +231,27 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 	else if (StrEqual(action, "stun", false)) {
 		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
 		if (StrEqual(ename, "player")) {
-			float fvalue = StringToFloat(value);
-			TF2_StunPlayer(itarget, fvalue, 0.0, TF_STUNFLAGS_BIGBONK, 0);
+			if (StrEqual(value, "")) {
+				PrintToChat(client, "[SM] stun <value>");
+			}
+			else {
+				float fvalue = StringToFloat(value);
+				TF2_StunPlayer(itarget, fvalue, 0.0, TF_STUNFLAGS_BIGBONK, 0);
+			}
 		}
 		else {
 			PrintToChat(client, "[SM] Target must be a player!");
 		}
 	}
 	else if (StrEqual(action, "setname", false)) {
-		char newvalue[128]; Format(newvalue, sizeof(newvalue), "targetname %s", value);
-		SetVariantString(newvalue);
-		AcceptEntityInput(itarget, "addoutput");
+		if (StrEqual(value, "")) {
+			PrintToChat(client, "[SM] setname <name>");
+		}
+		else {
+			char newvalue[128]; Format(newvalue, sizeof(newvalue), "targetname %s", value);
+			SetVariantString(newvalue);
+			AcceptEntityInput(itarget, "addoutput");
+		}
 	}
 	else if (StrEqual(action, "kill", false)) {
 		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
@@ -248,62 +263,87 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		}
 	}
 	else if (StrEqual(action, "addorg", false)) {
-		float entorg[3]; GetEntPropVector(itarget, Prop_Data, "m_vecOrigin", entorg);
-		char num[32][6]; ExplodeString(value, " ", num, 6, sizeof(num));
-		entorg[0] += StringToFloat(num[0]);
-		entorg[1] += StringToFloat(num[1]);
-		entorg[2] += StringToFloat(num[2]);
-		TeleportEntity(itarget, entorg, NULL_VECTOR, NULL_VECTOR);
+		if (StrEqual(value, "")) {
+			PrintToChat(client, "[SM] addorg <x> <y> <z>");
+		}
+		else {
+			float entorg[3]; GetEntPropVector(itarget, Prop_Data, "m_vecOrigin", entorg);
+			char num[32][6]; ExplodeString(value, " ", num, 6, sizeof(num));
+			entorg[0] += StringToFloat(num[0]);
+			entorg[1] += StringToFloat(num[1]);
+			entorg[2] += StringToFloat(num[2]);
+			TeleportEntity(itarget, entorg, NULL_VECTOR, NULL_VECTOR);
+		}
 	}
 	else if (StrEqual(action, "addang", false)) {
-		float entang[3]; GetEntPropVector(itarget, Prop_Data, "m_angRotation", entang);
-		char num[32][6]; ExplodeString(value, " ", num, 6, sizeof(num));
-		entang[0] += StringToFloat(num[0]);
-		entang[1] += StringToFloat(num[1]);
-		entang[2] += StringToFloat(num[2]);
-		TeleportEntity(itarget, NULL_VECTOR, entang, NULL_VECTOR);
+		if (StrEqual(value, "")) {
+			PrintToChat(client, "[SM] addang <pitch> <yaw> <roll>");
+		}
+		else {
+			float entang[3]; GetEntPropVector(itarget, Prop_Data, "m_angRotation", entang);
+			char num[32][6]; ExplodeString(value, " ", num, 6, sizeof(num));
+			entang[0] += StringToFloat(num[0]);
+			entang[1] += StringToFloat(num[1]);
+			entang[2] += StringToFloat(num[2]);
+			TeleportEntity(itarget, NULL_VECTOR, entang, NULL_VECTOR);
+		}
 	}
 	else if (StrEqual(action, "setorg", false)) {
-		float entorg[3]; char num[32][6];
-		ExplodeString(value, " ", num, 6, sizeof(num));
-		entorg[0] = StringToFloat(num[0]);
-		entorg[1] = StringToFloat(num[1]);
-		entorg[2] = StringToFloat(num[2]);
-		TeleportEntity(itarget, entorg, NULL_VECTOR, NULL_VECTOR);
+		if (StrEqual(value, "")) {
+			PrintToChat(client, "[SM] setorg <x> <y> <z>");
+		}
+		else {
+			float entorg[3]; char num[32][6];
+			ExplodeString(value, " ", num, 6, sizeof(num));
+			entorg[0] = StringToFloat(num[0]);
+			entorg[1] = StringToFloat(num[1]);
+			entorg[2] = StringToFloat(num[2]);
+			TeleportEntity(itarget, entorg, NULL_VECTOR, NULL_VECTOR);
+		}
 	}
 	else if (StrEqual(action, "setang", false)) {
-		float entang[3]; char num[32][6];
-		ExplodeString(value, " ", num, 6, sizeof(num));
-		entang[0] = StringToFloat(num[0]);
-		entang[1] = StringToFloat(num[1]);
-		entang[2] = StringToFloat(num[2]);
-		TeleportEntity(itarget, NULL_VECTOR, entang, NULL_VECTOR);
+		if (StrEqual(value, "")) {
+			PrintToChat(client, "[SM] setang <pitch> <yaw> <roll>");
+		}
+		else {
+			float entang[3]; char num[32][6];
+			ExplodeString(value, " ", num, 6, sizeof(num));
+			entang[0] = StringToFloat(num[0]);
+			entang[1] = StringToFloat(num[1]);
+			entang[2] = StringToFloat(num[2]);
+			TeleportEntity(itarget, NULL_VECTOR, entang, NULL_VECTOR);
+		}
 	}
 	else if (StrEqual(action, "copy", false)) {
 		if (multiple == false) {
 			char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
 			if (StrEqual(ename, "prop_dynamic") || StrEqual(ename, "prop_physics") || StrEqual(ename, "prop_static")) {
-				char model[512]; GetEntPropString(itarget, Prop_Data, "m_ModelName", model, sizeof(model));
-				char tname[64]; GetEntPropString(itarget, Prop_Data, "m_iName", tname, sizeof(tname));
-				float entang[3]; GetEntPropVector(itarget, Prop_Data, "m_angRotation", entang);
-				float entorg[3]; GetEntPropVector(itarget, Prop_Data, "m_vecOrigin", entorg);
-				int ent = CreateEntityByName("prop_dynamic");
-				if (ent != -1) {
-					DispatchKeyValue(ent, "targetname", tname);
-					DispatchKeyValue(ent, "model", model);
-					DispatchKeyValue(ent, "solid", "6");
-					DispatchKeyValue(ent, "physdamagescale", "0.0");
+				if (StrEqual(value, "")) {
+					PrintToChat(client, "[SM] copy <x> <y> <z> <pitch> <yaw> <roll>");
 				}
-				DispatchSpawn(ent);
-				ActivateEntity(ent);
-				char num[32][12]; ExplodeString(value, " ", num, 12, sizeof(num));
-				entorg[0] += StringToFloat(num[0]);
-				entorg[1] += StringToFloat(num[1]);
-				entorg[2] += StringToFloat(num[2]);
-				entang[0] += StringToFloat(num[3]);
-				entang[1] += StringToFloat(num[4]);
-				entang[2] += StringToFloat(num[5]);
-				TeleportEntity(ent, entorg, entang, NULL_VECTOR);
+				else {
+					char model[512]; GetEntPropString(itarget, Prop_Data, "m_ModelName", model, sizeof(model));
+					char tname[64]; GetEntPropString(itarget, Prop_Data, "m_iName", tname, sizeof(tname));
+					float entang[3]; GetEntPropVector(itarget, Prop_Data, "m_angRotation", entang);
+					float entorg[3]; GetEntPropVector(itarget, Prop_Data, "m_vecOrigin", entorg);
+					int ent = CreateEntityByName("prop_dynamic");
+					if (ent != -1) {
+						DispatchKeyValue(ent, "targetname", tname);
+						DispatchKeyValue(ent, "model", model);
+						DispatchKeyValue(ent, "solid", "6");
+						DispatchKeyValue(ent, "physdamagescale", "0.0");
+					}
+					DispatchSpawn(ent);
+					ActivateEntity(ent);
+					char num[32][12]; ExplodeString(value, " ", num, 12, sizeof(num));
+					entorg[0] += StringToFloat(num[0]);
+					entorg[1] += StringToFloat(num[1]);
+					entorg[2] += StringToFloat(num[2]);
+					entang[0] += StringToFloat(num[3]);
+					entang[1] += StringToFloat(num[4]);
+					entang[2] += StringToFloat(num[5]);
+					TeleportEntity(ent, entorg, entang, NULL_VECTOR);
+				}
 			}
 			else {
 				PrintToChat(client, "[SM] Target must be a prop!");
@@ -342,8 +382,13 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 	else if (StrEqual(action, "setheadscale", false)) {
 		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
 		if (StrEqual(ename, "player")) {
-			fHeadScale[client] = StringToFloat(value);
-			SetEntPropFloat(itarget, Prop_Send, "m_flHeadScale", fHeadScale[itarget]);
+			if (StrEqual(value, "")) {
+				PrintToChat(client, "[SM] setheadscale <value>");
+			}
+			else {
+				fHeadScale[client] = StringToFloat(value);
+				SetEntPropFloat(itarget, Prop_Send, "m_flHeadScale", fHeadScale[itarget]);
+			}
 		}
 		else {
 			PrintToChat(client, "[SM] Target must be a player!");
@@ -352,8 +397,13 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 	else if (StrEqual(action, "settorsoscale", false)) {
 		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
 		if (StrEqual(ename, "player")) {
-			fTorsoScale[client] = StringToFloat(value);
-			SetEntPropFloat(itarget, Prop_Send, "m_flTorsoScale", fTorsoScale[itarget]);
+			if (StrEqual(value, "")) {
+				PrintToChat(client, "[SM] settorsoscale <value>");
+			}
+			else {
+				fTorsoScale[client] = StringToFloat(value);
+				SetEntPropFloat(itarget, Prop_Send, "m_flTorsoScale", fTorsoScale[itarget]);
+			}
 		}
 		else {
 			PrintToChat(client, "[SM] Target must be a player!");
@@ -362,8 +412,13 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 	else if (StrEqual(action, "sethandscale", false)) {
 		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
 		if (StrEqual(ename, "player")) {
-			fHandScale[client] = StringToFloat(value);
-			SetEntPropFloat(itarget, Prop_Send, "m_flHandScale", fHandScale[itarget]);
+			if (StrEqual(value, "")) {
+				PrintToChat(client, "[SM] sethandscale <value>");
+			}
+			else {
+				fHandScale[client] = StringToFloat(value);
+				SetEntPropFloat(itarget, Prop_Send, "m_flHandScale", fHandScale[itarget]);
+			}
 		}
 		else {
 			PrintToChat(client, "[SM] Target must be a player!");
@@ -414,6 +469,9 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 					float playerorg[3]; GetClientEyePosition(newtarget, playerorg);
 					TeleportEntity(itarget, playerorg, NULL_VECTOR, NULL_VECTOR);
 				}
+			}
+			else if (StrEqual(value, "")) {
+				PrintToChat(client, "[SM] teleport <@playername>");
 			}
 			else {
 				PrintToChat(client, "[SM] Target invalid!");
