@@ -58,6 +58,10 @@ public Action spawn_thirdperson(Handle timer, any client) {
 	AcceptEntityInput(client, "SetForcedTauntCam");
 }
 
+public bool filter_player(int entity, int mask, any data) {
+	return entity > GetMaxClients() || !entity;
+}
+
 public Action sm_fire(int client, int args) {
 	if (client == 0) { return Plugin_Handled; }
 	if (args < 2) {
@@ -193,28 +197,39 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 			PrintToChat(client, "[SM] Invalid target!");
 	}
 	else if (StrEqual(action, "data", false)) {
-		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
-		char tname[64]; GetEntPropString(itarget, Prop_Data, "m_iName", tname, sizeof(tname));
-		char model[512]; GetEntPropString(itarget, Prop_Data, "m_ModelName", model, sizeof(model));
-		char parent[256]; GetEntPropString(itarget, Prop_Data, "m_iParent", parent, sizeof(parent));
-		float entang[3]; GetEntPropVector(itarget, Prop_Data, "m_angRotation", entang);
-		float entorg[3]; GetEntPropVector(itarget, Prop_Data, "m_vecOrigin", entorg);
-		float entvec[3]; GetEntPropVector(itarget, Prop_Data, "m_vecVelocity", entvec);
-		if (StrEqual(tname, "")) { strcopy(tname, sizeof(tname), "N/A"); }
-		if (StrEqual(model, "")) { strcopy(model, sizeof(model), "N/A"); }
-		if (StrEqual(parent, "")) { strcopy(parent, sizeof(parent), "N/A"); }
-		if (multiple == false) {
-			ReplyToCommand(client, "\x03%i > Classname: %s - Name: %s", itarget, ename, tname);
-			if (StrEqual(value, "full", false)) {
-				ReplyToCommand(client, "Model: %s", model);
-				ReplyToCommand(client, "Parent: %s", model);
-				ReplyToCommand(client, "Origin: %.0f %.0f %.0f", entorg[0], entorg[1], entorg[2]);
-				ReplyToCommand(client, "Angles: %.0f %.0f %.0f", entang[0], entang[1], entang[2]);
-				ReplyToCommand(client, "Velocity: %.0f %.0f %.0f", entvec[0], entvec[1], entvec[2]);
+		if (itarget == client && StrEqual(value, "trace", false)) {
+			float playerang[3]; GetClientEyeAngles(itarget, playerang);
+			float playerorg[3]; GetClientEyePosition(itarget, playerorg);
+			Handle trace = TR_TraceRayFilterEx(playerorg, playerang, MASK_SHOT, RayType_Infinite, filter_player);
+			if (TR_DidHit(trace)) {
+				float endpos[3]; TR_GetEndPosition(endpos, trace);
+				PrintToChat(client, "\x03Pos: %.0f %.0f %.0f", endpos[0], endpos[1], endpos[2]);
 			}
 		}
 		else {
-			PrintToConsole(client, "%i > Classname: %s - Name: %s", itarget, ename, tname);
+			char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
+			char tname[64]; GetEntPropString(itarget, Prop_Data, "m_iName", tname, sizeof(tname));
+			char model[512]; GetEntPropString(itarget, Prop_Data, "m_ModelName", model, sizeof(model));
+			char parent[256]; GetEntPropString(itarget, Prop_Data, "m_iParent", parent, sizeof(parent));
+			float entang[3]; GetEntPropVector(itarget, Prop_Data, "m_angRotation", entang);
+			float entorg[3]; GetEntPropVector(itarget, Prop_Data, "m_vecOrigin", entorg);
+			float entvec[3]; GetEntPropVector(itarget, Prop_Data, "m_vecVelocity", entvec);
+			if (StrEqual(tname, "")) { strcopy(tname, sizeof(tname), "N/A"); }
+			if (StrEqual(model, "")) { strcopy(model, sizeof(model), "N/A"); }
+			if (StrEqual(parent, "")) { strcopy(parent, sizeof(parent), "N/A"); }
+			if (multiple == false) {
+				ReplyToCommand(client, "\x03%i > Classname: %s - Name: %s", itarget, ename, tname);
+				if (StrEqual(value, "full", false)) {
+					ReplyToCommand(client, "Model: %s", model);
+					ReplyToCommand(client, "Parent: %s", model);
+					ReplyToCommand(client, "Origin: %.0f %.0f %.0f", entorg[0], entorg[1], entorg[2]);
+					ReplyToCommand(client, "Angles: %.0f %.0f %.0f", entang[0], entang[1], entang[2]);
+					ReplyToCommand(client, "Velocity: %.0f %.0f %.0f", entvec[0], entvec[1], entvec[2]);
+				}
+			}
+			else {
+				PrintToConsole(client, "%i > Classname: %s - Name: %s", itarget, ename, tname);
+			}
 		}
 	}
 	else if (StrEqual(action, "removeslot", false)) {
