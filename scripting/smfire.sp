@@ -4,6 +4,7 @@
 #include <sourcemod>
 #include <tf2_stocks>
 
+int iCounter;
 float fHeadScale[MAXPLAYERS + 1];
 float fTorsoScale[MAXPLAYERS + 1];
 float fHandScale[MAXPLAYERS + 1];
@@ -182,10 +183,13 @@ void ent_fire(int client, char[] target, char[] action, char[] value) {
 	if (StrEqual(action, "data", false) && num >= 1) {
 		PrintToChat(client, "[SM] %i entities printed to console!", num);
 	}
+	iCounter = 0;
 }
 
 void ent_action(int client, int itarget, char[] action, char[] value, bool multiple) {
+	iCounter++;
 	if (itarget <= 0 || !IsValidEntity(itarget)) {
+		if (iCounter == 1)
 		PrintToChat(client, "[SM] Invalid target!");
 	}
 	else if (StrEqual(action, "data", false)) {
@@ -217,6 +221,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
 		if (StrEqual(ename, "player")) {
 			if (StrEqual(value, "")) {
+				if (iCounter == 1)
 				PrintToChat(client, "[SM] removeslot <value>");
 			}
 			else {
@@ -225,6 +230,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 			}
 		}
 		else {
+			if (iCounter == 1)
 			PrintToChat(client, "[SM] Target must be a player!");
 		}
 	}
@@ -232,6 +238,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
 		if (StrEqual(ename, "player")) {
 			if (StrEqual(value, "")) {
+				if (iCounter == 1)
 				PrintToChat(client, "[SM] stun <value>");
 			}
 			else {
@@ -240,11 +247,13 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 			}
 		}
 		else {
+			if (iCounter == 1)
 			PrintToChat(client, "[SM] Target must be a player!");
 		}
 	}
 	else if (StrEqual(action, "setname", false)) {
 		if (StrEqual(value, "")) {
+			if (iCounter == 1)
 			PrintToChat(client, "[SM] setname <name>");
 		}
 		else {
@@ -264,6 +273,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 	}
 	else if (StrEqual(action, "addorg", false)) {
 		if (StrEqual(value, "")) {
+			if (iCounter == 1)
 			PrintToChat(client, "[SM] addorg <x> <y> <z>");
 		}
 		else {
@@ -277,6 +287,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 	}
 	else if (StrEqual(action, "addang", false)) {
 		if (StrEqual(value, "")) {
+			if (iCounter == 1)
 			PrintToChat(client, "[SM] addang <pitch> <yaw> <roll>");
 		}
 		else {
@@ -290,6 +301,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 	}
 	else if (StrEqual(action, "setorg", false)) {
 		if (StrEqual(value, "")) {
+			if (iCounter == 1)
 			PrintToChat(client, "[SM] setorg <x> <y> <z>");
 		}
 		else {
@@ -303,6 +315,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 	}
 	else if (StrEqual(action, "setang", false)) {
 		if (StrEqual(value, "")) {
+			if (iCounter == 1)
 			PrintToChat(client, "[SM] setang <pitch> <yaw> <roll>");
 		}
 		else {
@@ -319,6 +332,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 			char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
 			if (StrEqual(ename, "prop_dynamic") || StrEqual(ename, "prop_physics") || StrEqual(ename, "prop_static")) {
 				if (StrEqual(value, "")) {
+					if (iCounter == 1)
 					PrintToChat(client, "[SM] copy <x> <y> <z> <pitch> <yaw> <roll>");
 				}
 				else {
@@ -346,10 +360,12 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 				}
 			}
 			else {
+				if (iCounter == 1)
 				PrintToChat(client, "[SM] Target must be a prop!");
 			}
 		}
 		else {
+			if (iCounter == 1)
 			PrintToChat(client, "[SM] Only one target allowed!");
 		}
 	}
@@ -376,6 +392,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 			}
 		}
 		else {
+			if (iCounter == 1)
 			PrintToChat(client, "[SM] Target must be a player!");
 		}
 	}
@@ -383,6 +400,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
 		if (StrEqual(ename, "player")) {
 			if (StrEqual(value, "")) {
+				if (iCounter == 1)
 				PrintToChat(client, "[SM] setheadscale <value>");
 			}
 			else {
@@ -391,6 +409,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 			}
 		}
 		else {
+			if (iCounter == 1)
 			PrintToChat(client, "[SM] Target must be a player!");
 		}
 	}
@@ -398,6 +417,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
 		if (StrEqual(ename, "player")) {
 			if (StrEqual(value, "")) {
+				if (iCounter == 1)
 				PrintToChat(client, "[SM] settorsoscale <value>");
 			}
 			else {
@@ -406,6 +426,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 			}
 		}
 		else {
+			if (iCounter == 1)
 			PrintToChat(client, "[SM] Target must be a player!");
 		}
 	}
@@ -413,6 +434,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
 		if (StrEqual(ename, "player")) {
 			if (StrEqual(value, "")) {
+				if (iCounter == 1)
 				PrintToChat(client, "[SM] sethandscale <value>");
 			}
 			else {
@@ -421,6 +443,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 			}
 		}
 		else {
+			if (iCounter == 1)
 			PrintToChat(client, "[SM] Target must be a player!");
 		}
 	}
@@ -434,6 +457,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 			AcceptEntityInput(itarget, "setmodelscale");
 		}
 		else {
+			if (iCounter == 1)
 			PrintToChat(client, "[SM] Target must be a player!");
 		}
 	}
@@ -445,6 +469,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 			bThirdperson[itarget] = false;
 		}
 		else {
+			if (iCounter == 1)
 			PrintToChat(client, "[SM] Target must be a player!");
 		}
 	}
@@ -456,6 +481,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 			bThirdperson[itarget] = true;
 		}
 		else {
+			if (iCounter == 1)
 			PrintToChat(client, "[SM] Target must be a player!");
 		}
 	}
@@ -471,9 +497,11 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 				}
 			}
 			else if (StrEqual(value, "")) {
+				if (iCounter == 1)
 				PrintToChat(client, "[SM] teleport <@playername>");
 			}
 			else {
+				if (iCounter == 1)
 				PrintToChat(client, "[SM] Target invalid!");
 			}
 			
