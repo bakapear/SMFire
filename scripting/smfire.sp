@@ -190,7 +190,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 	iCounter++;
 	if (itarget <= 0 || !IsValidEntity(itarget)) {
 		if (iCounter == 1)
-		PrintToChat(client, "[SM] Invalid target!");
+			PrintToChat(client, "[SM] Invalid target!");
 	}
 	else if (StrEqual(action, "data", false)) {
 		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
@@ -222,7 +222,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		if (StrEqual(ename, "player")) {
 			if (StrEqual(value, "")) {
 				if (iCounter == 1)
-				PrintToChat(client, "[SM] removeslot <value>");
+					PrintToChat(client, "[SM] removeslot <value>");
 			}
 			else {
 				int ivalue = StringToInt(value);
@@ -231,7 +231,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		}
 		else {
 			if (iCounter == 1)
-			PrintToChat(client, "[SM] Target must be a player!");
+				PrintToChat(client, "[SM] Target must be a player!");
 		}
 	}
 	else if (StrEqual(action, "stun", false)) {
@@ -239,7 +239,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		if (StrEqual(ename, "player")) {
 			if (StrEqual(value, "")) {
 				if (iCounter == 1)
-				PrintToChat(client, "[SM] stun <value>");
+					PrintToChat(client, "[SM] stun <value>");
 			}
 			else {
 				float fvalue = StringToFloat(value);
@@ -248,13 +248,13 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		}
 		else {
 			if (iCounter == 1)
-			PrintToChat(client, "[SM] Target must be a player!");
+				PrintToChat(client, "[SM] Target must be a player!");
 		}
 	}
 	else if (StrEqual(action, "setname", false)) {
 		if (StrEqual(value, "")) {
 			if (iCounter == 1)
-			PrintToChat(client, "[SM] setname <name>");
+				PrintToChat(client, "[SM] setname <name>");
 		}
 		else {
 			char newvalue[128]; Format(newvalue, sizeof(newvalue), "targetname %s", value);
@@ -274,7 +274,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 	else if (StrEqual(action, "addorg", false)) {
 		if (StrEqual(value, "")) {
 			if (iCounter == 1)
-			PrintToChat(client, "[SM] addorg <x> <y> <z>");
+				PrintToChat(client, "[SM] addorg <x> <y> <z>");
 		}
 		else {
 			float entorg[3]; GetEntPropVector(itarget, Prop_Data, "m_vecOrigin", entorg);
@@ -288,7 +288,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 	else if (StrEqual(action, "addang", false)) {
 		if (StrEqual(value, "")) {
 			if (iCounter == 1)
-			PrintToChat(client, "[SM] addang <pitch> <yaw> <roll>");
+				PrintToChat(client, "[SM] addang <pitch> <yaw> <roll>");
 		}
 		else {
 			float entang[3]; GetEntPropVector(itarget, Prop_Data, "m_angRotation", entang);
@@ -302,7 +302,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 	else if (StrEqual(action, "setorg", false)) {
 		if (StrEqual(value, "")) {
 			if (iCounter == 1)
-			PrintToChat(client, "[SM] setorg <x> <y> <z>");
+				PrintToChat(client, "[SM] setorg <x> <y> <z>");
 		}
 		else {
 			float entorg[3]; char num[32][6];
@@ -316,7 +316,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 	else if (StrEqual(action, "setang", false)) {
 		if (StrEqual(value, "")) {
 			if (iCounter == 1)
-			PrintToChat(client, "[SM] setang <pitch> <yaw> <roll>");
+				PrintToChat(client, "[SM] setang <pitch> <yaw> <roll>");
 		}
 		else {
 			float entang[3]; char num[32][6];
@@ -333,7 +333,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 			if (StrEqual(ename, "prop_dynamic") || StrEqual(ename, "prop_physics") || StrEqual(ename, "prop_static")) {
 				if (StrEqual(value, "")) {
 					if (iCounter == 1)
-					PrintToChat(client, "[SM] copy <x> <y> <z> <pitch> <yaw> <roll>");
+						PrintToChat(client, "[SM] copy <x> <y> <z> <pitch> <yaw> <roll>");
 				}
 				else {
 					char model[512]; GetEntPropString(itarget, Prop_Data, "m_ModelName", model, sizeof(model));
@@ -361,12 +361,12 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 			}
 			else {
 				if (iCounter == 1)
-				PrintToChat(client, "[SM] Target must be a prop!");
+					PrintToChat(client, "[SM] Target must be a prop!");
 			}
 		}
 		else {
 			if (iCounter == 1)
-			PrintToChat(client, "[SM] Only one target allowed!");
+				PrintToChat(client, "[SM] Only one target allowed!");
 		}
 	}
 	else if (StrEqual(action, "class", false)) {
@@ -393,7 +393,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		}
 		else {
 			if (iCounter == 1)
-			PrintToChat(client, "[SM] Target must be a player!");
+				PrintToChat(client, "[SM] Target must be a player!");
 		}
 	}
 	else if (StrEqual(action, "setheadscale", false)) {
@@ -401,7 +401,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		if (StrEqual(ename, "player")) {
 			if (StrEqual(value, "")) {
 				if (iCounter == 1)
-				PrintToChat(client, "[SM] setheadscale <value>");
+					PrintToChat(client, "[SM] setheadscale <value>");
 			}
 			else {
 				fHeadScale[client] = StringToFloat(value);
@@ -410,7 +410,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		}
 		else {
 			if (iCounter == 1)
-			PrintToChat(client, "[SM] Target must be a player!");
+				PrintToChat(client, "[SM] Target must be a player!");
 		}
 	}
 	else if (StrEqual(action, "settorsoscale", false)) {
@@ -418,7 +418,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		if (StrEqual(ename, "player")) {
 			if (StrEqual(value, "")) {
 				if (iCounter == 1)
-				PrintToChat(client, "[SM] settorsoscale <value>");
+					PrintToChat(client, "[SM] settorsoscale <value>");
 			}
 			else {
 				fTorsoScale[client] = StringToFloat(value);
@@ -427,7 +427,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		}
 		else {
 			if (iCounter == 1)
-			PrintToChat(client, "[SM] Target must be a player!");
+				PrintToChat(client, "[SM] Target must be a player!");
 		}
 	}
 	else if (StrEqual(action, "sethandscale", false)) {
@@ -435,7 +435,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		if (StrEqual(ename, "player")) {
 			if (StrEqual(value, "")) {
 				if (iCounter == 1)
-				PrintToChat(client, "[SM] sethandscale <value>");
+					PrintToChat(client, "[SM] sethandscale <value>");
 			}
 			else {
 				fHandScale[client] = StringToFloat(value);
@@ -444,7 +444,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		}
 		else {
 			if (iCounter == 1)
-			PrintToChat(client, "[SM] Target must be a player!");
+				PrintToChat(client, "[SM] Target must be a player!");
 		}
 	}
 	else if (StrEqual(action, "resetscale", false)) {
@@ -458,7 +458,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		}
 		else {
 			if (iCounter == 1)
-			PrintToChat(client, "[SM] Target must be a player!");
+				PrintToChat(client, "[SM] Target must be a player!");
 		}
 	}
 	else if (StrEqual(action, "fp", false) || StrEqual(action, "firstperson", false)) {
@@ -470,7 +470,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		}
 		else {
 			if (iCounter == 1)
-			PrintToChat(client, "[SM] Target must be a player!");
+				PrintToChat(client, "[SM] Target must be a player!");
 		}
 	}
 	else if (StrEqual(action, "tp", false) || StrEqual(action, "thirdperson", false)) {
@@ -482,7 +482,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		}
 		else {
 			if (iCounter == 1)
-			PrintToChat(client, "[SM] Target must be a player!");
+				PrintToChat(client, "[SM] Target must be a player!");
 		}
 	}
 	else if (StrEqual(action, "teleport", false)) {
@@ -498,17 +498,17 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 			}
 			else if (StrEqual(value, "")) {
 				if (iCounter == 1)
-				PrintToChat(client, "[SM] teleport <@playername>");
+					PrintToChat(client, "[SM] teleport <@playername>");
 			}
 			else {
 				if (iCounter == 1)
-				PrintToChat(client, "[SM] Target invalid!");
+					PrintToChat(client, "[SM] Target invalid!");
 			}
 			
 		}
 		else {
 			if (iCounter == 1)
-			PrintToChat(client, "[SM] Target must be a player!");
+				PrintToChat(client, "[SM] Target must be a player!");
 		}
 	}
 	else if (StrEqual(action, "addcond", false)) {
@@ -516,7 +516,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		if (StrEqual(ename, "player")) {
 			if (StrEqual(value, "")) {
 				if (iCounter == 1)
-				PrintToChat(client, "[SM] addcond <condition>");
+					PrintToChat(client, "[SM] addcond <condition>");
 			}
 			else {
 				int condition = StringToInt(value);
@@ -526,7 +526,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		}
 		else {
 			if (iCounter == 1)
-			PrintToChat(client, "[SM] Target must be a player!");
+				PrintToChat(client, "[SM] Target must be a player!");
 		}
 	}
 	else if (StrEqual(action, "removecond", false)) {
@@ -534,7 +534,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		if (StrEqual(ename, "player")) {
 			if (StrEqual(value, "")) {
 				if (iCounter == 1)
-				PrintToChat(client, "[SM] removecond <condition>");
+					PrintToChat(client, "[SM] removecond <condition>");
 			}
 			else {
 				int condition = StringToInt(value);
@@ -544,7 +544,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		}
 		else {
 			if (iCounter == 1)
-			PrintToChat(client, "[SM] Target must be a player!");
+				PrintToChat(client, "[SM] Target must be a player!");
 		}
 	}
 	else {
