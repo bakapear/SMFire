@@ -142,6 +142,16 @@ void ent_fire(int client, char[] target, char[] action, char[] value) {
 			}
 		}
 	}
+	else if (StrEqual(target, "!aim", false)) {
+		float playerang[3]; GetClientEyeAngles(client, playerang);
+		float playerorg[3]; GetClientEyePosition(client, playerorg);
+		Handle trace = TR_TraceRayFilterEx(playerorg, playerang, MASK_SHOT, RayType_Infinite, filter_player);
+		if (TR_DidHit(trace)) {
+			float endpos[3]; TR_GetEndPosition(endpos, trace);
+			int entity = TR_GetEntityIndex(trace);
+			ent_trace(client, playerang, playerorg, endpos, entity, action, value);
+		}
+	}
 	else if (StrContains(target, "@", false) == 0) {
 		strcopy(target, 64, target[1]);
 		int itarget = FindTarget(client, target, false, false);
@@ -197,16 +207,6 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 			PrintToChat(client, "[SM] Invalid target!");
 	}
 	else if (StrEqual(action, "data", false)) {
-		if (itarget == client && StrEqual(value, "trace", false)) {
-			float playerang[3]; GetClientEyeAngles(itarget, playerang);
-			float playerorg[3]; GetClientEyePosition(itarget, playerorg);
-			Handle trace = TR_TraceRayFilterEx(playerorg, playerang, MASK_SHOT, RayType_Infinite, filter_player);
-			if (TR_DidHit(trace)) {
-				float endpos[3]; TR_GetEndPosition(endpos, trace);
-				PrintToChat(client, "\x03Pos: %.0f %.0f %.0f", endpos[0], endpos[1], endpos[2]);
-			}
-		}
-		else {
 			char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
 			char tname[64]; GetEntPropString(itarget, Prop_Data, "m_iName", tname, sizeof(tname));
 			char model[512]; GetEntPropString(itarget, Prop_Data, "m_ModelName", model, sizeof(model));
@@ -230,7 +230,6 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 			else {
 				PrintToConsole(client, "%i > Classname: %s - Name: %s", itarget, ename, tname);
 			}
-		}
 	}
 	else if (StrEqual(action, "removeslot", false)) {
 		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
@@ -571,3 +570,12 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		}
 	}
 } 
+
+void ent_trace(int client, float startpos[3], float startang[3], float endpos[3], int entity, char[] action, char[] value) {
+	if (StrEqual(action, "data", false)) {
+		PrintToChat(client, "StartPos: %.0f %.0f %.0f", startpos[0], startpos[1], startpos[2]);
+		PrintToChat(client, "StartAng: %.0f %.0f %.0f", startang[0], startang[1], startang[2]);
+		PrintToChat(client, "EndPos: %.0f %.0f %.0f", endpos[0], endpos[1], endpos[2]);
+		PrintToChat(client, "Hit: %i", entity);
+	}
+}
