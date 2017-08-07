@@ -5,7 +5,7 @@
 #include <tf2_stocks>
 
 int iCounter;
-int iEntity = 0;
+int iEntity[MAXPLAYERS + 1] = 0;
 float fHeadScale[MAXPLAYERS + 1];
 float fTorsoScale[MAXPLAYERS + 1];
 float fHandScale[MAXPLAYERS + 1];
@@ -603,30 +603,30 @@ void ent_trace(int client, float startpos[3], float startang[3], float endpos[3]
 			if (StrEqual(value, "0") || StrEqual(value, "-1")) {
 				PrintToChat(client, "[SM] Cannot create that entity!");
 			}
-			else if (iEntity == 0) {
-				iEntity = CreateEntityByName(value);
-				if (IsValidEntity(iEntity)) {
-					PrintToChat(client, "[SM] Entity %i > %s created.", iEntity, value);
+			else if (iEntity[client] == 0) {
+				iEntity[client] = CreateEntityByName(value);
+				if (IsValidEntity(iEntity[client])) {
+					PrintToChat(client, "[SM] Entity %i > %s created.", iEntity[client], value);
 				}
 				else {
 					PrintToChat(client, "[SM] Invalid entity!");
-					iEntity = 0;
+					iEntity[client] = 0;
 				}
 			}
 			else {
-				PrintToChat(client, "[SM] Please delete or spawn your previous entity first. (%i)", iEntity);
+				PrintToChat(client, "[SM] Please delete or spawn your previous entity first. (%i)", iEntity[client]);
 			}
 		}
 	}
 	else if (StrEqual(action, "delete", false)) {
-		if (iEntity != 0) {
-			char ename[128]; GetEntityClassname(iEntity, ename, sizeof(ename));
-			PrintToChat(client, "[SM] Entity %i > %s deleted", iEntity, ename);
-			RemoveEdict(iEntity);
-			iEntity = 0;
+		if (iEntity[client] != 0) {
+			char ename[128]; GetEntityClassname(iEntity[client], ename, sizeof(ename));
+			PrintToChat(client, "[SM] Entity %i > %s deleted", iEntity[client], ename);
+			RemoveEdict(iEntity[client]);
+			iEntity[client] = 0;
 		}
 		else {
-			PrintToChat(client, "[SM] No entity created yet.", iEntity);
+			PrintToChat(client, "[SM] No entity created yet.", iEntity[client]);
 		}
 	}
 	else if (StrEqual(action, "value", false)) {
@@ -634,30 +634,30 @@ void ent_trace(int client, float startpos[3], float startang[3], float endpos[3]
 			PrintToChat(client, "[SM] value <key> <value>");
 		}
 		else {
-			if (iEntity != 0) {
-				char ename[128]; GetEntityClassname(iEntity, ename, sizeof(ename));
+			if (iEntity[client] != 0) {
+				char ename[128]; GetEntityClassname(iEntity[client], ename, sizeof(ename));
 				char num[32][6]; ExplodeString(value, " ", num, 2, sizeof(num), true);
-				DispatchKeyValue(iEntity, num[0], num[1]);
+				DispatchKeyValue(iEntity[client], num[0], num[1]);
 				PrintToChat(client, "[SM] Key:\"%s\" Value:\"%s\"", num[0], num[1]);
-				PrintToChat(client, "added to entity %i > %s", iEntity, ename);
+				PrintToChat(client, "added to entity %i > %s", iEntity[client], ename);
 			}
 			else {
-				PrintToChat(client, "[SM] No entity created yet.", iEntity);
+				PrintToChat(client, "[SM] No entity created yet.", iEntity[client]);
 			}
 		}
 	}
 	else if (StrEqual(action, "spawn", false)) {
-		if (iEntity != 0) {
-			char ename[128]; GetEntityClassname(iEntity, ename, sizeof(ename));
-			PrintToChat(client, "[SM] Entity %i > %s spawned.", iEntity, ename);
-			DispatchSpawn(iEntity);
+		if (iEntity[client] != 0) {
+			char ename[128]; GetEntityClassname(iEntity[client], ename, sizeof(ename));
+			PrintToChat(client, "[SM] Entity %i > %s spawned.", iEntity[client], ename);
+			DispatchSpawn(iEntity[client]);
 			float propang[3];
 			propang[1] = 180 + startang[1];
-			TeleportEntity(iEntity, endpos, propang, NULL_VECTOR);
-			iEntity = 0;
+			TeleportEntity(iEntity[client], endpos, propang, NULL_VECTOR);
+			iEntity[client] = 0;
 		}
 		else {
-			PrintToChat(client, "[SM] No entity created yet.", iEntity);
+			PrintToChat(client, "[SM] No entity created yet.", iEntity[client]);
 		}
 	}
 	
