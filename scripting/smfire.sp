@@ -5,6 +5,7 @@
 #include <tf2_stocks>
 
 int iCounter;
+int iEntity = 0;
 float fHeadScale[MAXPLAYERS + 1];
 float fTorsoScale[MAXPLAYERS + 1];
 float fHandScale[MAXPLAYERS + 1];
@@ -149,7 +150,7 @@ void ent_fire(int client, char[] target, char[] action, char[] value) {
 		if (TR_DidHit(trace)) {
 			float endpos[3]; TR_GetEndPosition(endpos, trace);
 			int entity = TR_GetEntityIndex(trace);
-			ent_trace(client, playerang, playerorg, endpos, entity, action, value);
+			ent_trace(client, playerorg, playerang, endpos, entity, action, value);
 		}
 	}
 	else if (StrContains(target, "@", false) == 0) {
@@ -168,7 +169,7 @@ void ent_fire(int client, char[] target, char[] action, char[] value) {
 		strcopy(target, 64, target[1]);
 		for (int e = 1; e <= GetMaxEntities(); e++) {
 			if (IsValidEntity(e)) {
-				char tname[64]; GetEntPropString(e, Prop_Data, "m_iName", tname, sizeof(tname));
+				char tname[128]; GetEntPropString(e, Prop_Data, "m_iName", tname, sizeof(tname));
 				if (StrEqual(target, tname)) {
 					if (e != -1) {
 						int itarget = e;
@@ -182,7 +183,7 @@ void ent_fire(int client, char[] target, char[] action, char[] value) {
 	else {
 		for (int e = 1; e <= GetMaxEntities(); e++) {
 			if (IsValidEntity(e)) {
-				char ename[64]; GetEntityClassname(e, ename, sizeof(ename));
+				char ename[128]; GetEntityClassname(e, ename, sizeof(ename));
 				if (StrEqual(target, ename)) {
 					if (e != -1) {
 						int itarget = e;
@@ -207,29 +208,29 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 			PrintToChat(client, "[SM] Invalid target!");
 	}
 	else if (StrEqual(action, "data", false)) {
-			char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
-			char tname[64]; GetEntPropString(itarget, Prop_Data, "m_iName", tname, sizeof(tname));
-			char model[512]; GetEntPropString(itarget, Prop_Data, "m_ModelName", model, sizeof(model));
-			char parent[256]; GetEntPropString(itarget, Prop_Data, "m_iParent", parent, sizeof(parent));
-			float entang[3]; GetEntPropVector(itarget, Prop_Data, "m_angRotation", entang);
-			float entorg[3]; GetEntPropVector(itarget, Prop_Data, "m_vecOrigin", entorg);
-			float entvec[3]; GetEntPropVector(itarget, Prop_Data, "m_vecVelocity", entvec);
-			if (StrEqual(tname, "")) { strcopy(tname, sizeof(tname), "N/A"); }
-			if (StrEqual(model, "")) { strcopy(model, sizeof(model), "N/A"); }
-			if (StrEqual(parent, "")) { strcopy(parent, sizeof(parent), "N/A"); }
-			if (multiple == false) {
-				ReplyToCommand(client, "\x03%i > Classname: %s - Name: %s", itarget, ename, tname);
-				if (StrEqual(value, "full", false)) {
-					ReplyToCommand(client, "Model: %s", model);
-					ReplyToCommand(client, "Parent: %s", model);
-					ReplyToCommand(client, "Origin: %.0f %.0f %.0f", entorg[0], entorg[1], entorg[2]);
-					ReplyToCommand(client, "Angles: %.0f %.0f %.0f", entang[0], entang[1], entang[2]);
-					ReplyToCommand(client, "Velocity: %.0f %.0f %.0f", entvec[0], entvec[1], entvec[2]);
-				}
+		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
+		char tname[128]; GetEntPropString(itarget, Prop_Data, "m_iName", tname, sizeof(tname));
+		char model[512]; GetEntPropString(itarget, Prop_Data, "m_ModelName", model, sizeof(model));
+		char parent[256]; GetEntPropString(itarget, Prop_Data, "m_iParent", parent, sizeof(parent));
+		float entang[3]; GetEntPropVector(itarget, Prop_Data, "m_angRotation", entang);
+		float entorg[3]; GetEntPropVector(itarget, Prop_Data, "m_vecOrigin", entorg);
+		float entvec[3]; GetEntPropVector(itarget, Prop_Data, "m_vecVelocity", entvec);
+		if (StrEqual(tname, "")) { strcopy(tname, sizeof(tname), "N/A"); }
+		if (StrEqual(model, "")) { strcopy(model, sizeof(model), "N/A"); }
+		if (StrEqual(parent, "")) { strcopy(parent, sizeof(parent), "N/A"); }
+		if (multiple == false) {
+			ReplyToCommand(client, "\x03%i > Classname: %s - Name: %s", itarget, ename, tname);
+			if (StrEqual(value, "full", false)) {
+				ReplyToCommand(client, "Model: %s", model);
+				ReplyToCommand(client, "Parent: %s", model);
+				ReplyToCommand(client, "Origin: %.0f %.0f %.0f", entorg[0], entorg[1], entorg[2]);
+				ReplyToCommand(client, "Angles: %.0f %.0f %.0f", entang[0], entang[1], entang[2]);
+				ReplyToCommand(client, "Velocity: %.0f %.0f %.0f", entvec[0], entvec[1], entvec[2]);
 			}
-			else {
-				PrintToConsole(client, "%i > Classname: %s - Name: %s", itarget, ename, tname);
-			}
+		}
+		else {
+			PrintToConsole(client, "%i > Classname: %s - Name: %s", itarget, ename, tname);
+		}
 	}
 	else if (StrEqual(action, "removeslot", false)) {
 		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
@@ -351,7 +352,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 				}
 				else {
 					char model[512]; GetEntPropString(itarget, Prop_Data, "m_ModelName", model, sizeof(model));
-					char tname[64]; GetEntPropString(itarget, Prop_Data, "m_iName", tname, sizeof(tname));
+					char tname[128]; GetEntPropString(itarget, Prop_Data, "m_iName", tname, sizeof(tname));
 					float entang[3]; GetEntPropVector(itarget, Prop_Data, "m_angRotation", entang);
 					float entorg[3]; GetEntPropVector(itarget, Prop_Data, "m_vecOrigin", entorg);
 					int ent = CreateEntityByName("prop_dynamic");
@@ -569,7 +570,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 			SetEntProp(itarget, Prop_Send, "m_bUseClassAnimations", TF2_GetPlayerClass(itarget));
 		}
 	}
-} 
+}
 
 void ent_trace(int client, float startpos[3], float startang[3], float endpos[3], int entity, char[] action, char[] value) {
 	if (StrEqual(action, "data", false)) {
@@ -578,4 +579,86 @@ void ent_trace(int client, float startpos[3], float startang[3], float endpos[3]
 		PrintToChat(client, "EndPos: %.0f %.0f %.0f", endpos[0], endpos[1], endpos[2]);
 		PrintToChat(client, "Hit: %i", entity);
 	}
-}
+	else if (StrEqual(action, "prop", false)) {
+		if (StrEqual(value, "")) {
+			PrintToChat(client, "[SM] prop <modelpath>");
+		}
+		else {
+			PrecacheModel(value);
+			int prop = CreateEntityByName("prop_dynamic");
+			DispatchKeyValue(prop, "physdamagescale", "0.0");
+			DispatchKeyValue(prop, "Solid", "6");
+			DispatchKeyValue(prop, "model", value);
+			DispatchSpawn(prop);
+			float propang[3];
+			propang[1] = 180 + startang[1];
+			TeleportEntity(prop, endpos, propang, NULL_VECTOR);
+		}
+	}
+	else if (StrEqual(action, "create", false)) {
+		if (StrEqual(value, "")) {
+			PrintToChat(client, "[SM] create <entity>");
+		}
+		else {
+			if (StrEqual(value, "0") || StrEqual(value, "-1")) {
+				PrintToChat(client, "[SM] Cannot create that entity!");
+			}
+			else if (iEntity == 0) {
+				iEntity = CreateEntityByName(value);
+				if (IsValidEntity(iEntity)) {
+					PrintToChat(client, "[SM] Entity %i > %s created.", iEntity, value);
+				}
+				else {
+					PrintToChat(client, "[SM] Invalid entity!");
+					iEntity = 0;
+				}
+			}
+			else {
+				PrintToChat(client, "[SM] Please delete or spawn your previous entity first. (%i)", iEntity);
+			}
+		}
+	}
+	else if (StrEqual(action, "delete", false)) {
+		if (iEntity != 0) {
+			char ename[128]; GetEntityClassname(iEntity, ename, sizeof(ename));
+			PrintToChat(client, "[SM] Entity %i > %s deleted", iEntity, ename);
+			RemoveEdict(iEntity);
+			iEntity = 0;
+		}
+		else {
+			PrintToChat(client, "[SM] No entity created yet.", iEntity);
+		}
+	}
+	else if (StrEqual(action, "value", false)) {
+		if (StrEqual(value, "")) {
+			PrintToChat(client, "[SM] value <key> <value>");
+		}
+		else {
+			if (iEntity != 0) {
+				char ename[128]; GetEntityClassname(iEntity, ename, sizeof(ename));
+				char num[32][6]; ExplodeString(value, " ", num, 2, sizeof(num), true);
+				DispatchKeyValue(iEntity, num[0], num[1]);
+				PrintToChat(client, "[SM] Key:\"%s\" Value:\"%s\"", num[0], num[1]);
+				PrintToChat(client, "added to entity %i > %s", iEntity, ename);
+			}
+			else {
+				PrintToChat(client, "[SM] No entity created yet.", iEntity);
+			}
+		}
+	}
+	else if (StrEqual(action, "spawn", false)) {
+		if (iEntity != 0) {
+			char ename[128]; GetEntityClassname(iEntity, ename, sizeof(ename));
+			PrintToChat(client, "[SM] Entity %i > %s spawned.", iEntity, ename);
+			DispatchSpawn(iEntity);
+			float propang[3];
+			propang[1] = 180 + startang[1];
+			TeleportEntity(iEntity, endpos, propang, NULL_VECTOR);
+			iEntity = 0;
+		}
+		else {
+			PrintToChat(client, "[SM] No entity created yet.", iEntity);
+		}
+	}
+	
+} 
