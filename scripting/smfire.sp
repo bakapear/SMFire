@@ -562,6 +562,79 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 				PrintToChat(client, "[SM] Target must be a player!");
 		}
 	}
+	else if (StrContains(action, "m_", false) == 0) {
+		if (multiple == false) {
+			char part[32][6]; ExplodeString(value, " ", part, 3, sizeof(part), true);
+			bool method;
+			if (StrEqual(part[1], "set")) {
+				method = true;
+			}
+			if (StrEqual(part[0], "int")) {
+				if (method == true) {
+					SetEntProp(itarget, Prop_Send, action, StringToInt(part[2]));
+					PrintToChat(client, "[SM] Set %s to %s", action, part[2]);
+				}
+				else {
+					int data = GetEntProp(itarget, Prop_Data, action);
+					PrintToChat(client, "\x03%i", data);
+				}
+			}
+			else if (StrEqual(part[0], "float")) {
+				if (method == true) {
+					SetEntPropFloat(itarget, Prop_Send, action, StringToFloat(part[2]));
+					PrintToChat(client, "[SM] Set %s to %s", action, part[2]);
+				}
+				else {
+					float data = GetEntPropFloat(itarget, Prop_Data, action);
+					PrintToChat(client, "\x03%.0f", data);
+				}
+			}
+			else if (StrEqual(part[0], "string")) {
+				if (method == true) {
+					SetEntPropString(itarget, Prop_Send, action, part[2]);
+					PrintToChat(client, "[SM] Set %s to %s", action, part[2]);
+				}
+				else {
+					char buffer[256];
+					GetEntPropString(itarget, Prop_Data, action, buffer, sizeof(buffer));
+					PrintToChat(client, "\x03%s", buffer);
+				}
+			}
+			else if (StrEqual(part[0], "vector")) {
+				if (method == true) {
+					float vector[3]; char num[64][6];
+					ExplodeString(part[2], " ", num, 3, sizeof(num), false);
+					vector[0] = StringToFloat(num[0]);
+					vector[1] = StringToFloat(num[1]);
+					vector[2] = StringToFloat(num[2]);
+					SetEntPropVector(itarget, Prop_Send, action, vector);
+					PrintToChat(client, "[SM] Set %s to %.0f %.0f %.0f", action, vector[0], vector[1], vector[2]);
+				}
+				else {
+					float vector[3];
+					GetEntPropVector(itarget, Prop_Data, action, vector);
+					PrintToChat(client, "\x03%.0f %.0f %.0f", vector[0], vector[1], vector[2]);
+				}
+			}
+			else if (StrEqual(part[0], "entity")) {
+				if (method == true) {
+					SetEntPropEnt(itarget, Prop_Send, action, StringToInt(part[2]));
+					PrintToChat(client, "[SM] Set %s to %s", action, part[2]);
+				}
+				else {
+					int data = GetEntPropEnt(itarget, Prop_Data, action);
+					PrintToChat(client, "\x03%i", data);
+				}
+			}
+			else {
+				PrintToChat(client, "[SM] m_* int/float/string/vector/entity get/set <value>");
+			}
+		}
+		else {
+			if (iCounter == 1)
+				PrintToChat(client, "[SM] Only one target allowed!");
+		}
+	}
 	else {
 		SetVariantString(value);
 		AcceptEntityInput(itarget, action);
@@ -636,9 +709,9 @@ void ent_trace(int client, float startpos[3], float startang[3], float endpos[3]
 		else {
 			if (iEntity[client] != 0) {
 				char ename[128]; GetEntityClassname(iEntity[client], ename, sizeof(ename));
-				char num[32][6]; ExplodeString(value, " ", num, 2, sizeof(num), true);
-				DispatchKeyValue(iEntity[client], num[0], num[1]);
-				PrintToChat(client, "[SM] Key:\"%s\" Value:\"%s\"", num[0], num[1]);
+				char part[32][6]; ExplodeString(value, " ", part, 2, sizeof(part), true);
+				DispatchKeyValue(iEntity[client], part[0], part[1]);
+				PrintToChat(client, "[SM] Key:\"%s\" Value:\"%s\"", part[0], part[1]);
 				PrintToChat(client, "added to entity %i > %s", iEntity[client], ename);
 			}
 			else {
