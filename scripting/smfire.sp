@@ -503,7 +503,17 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 	else if (StrEqual(action, "teleport", false)) {
 		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
 		if (StrEqual(ename, "player")) {
-			if (StrContains(value, "@", false) == 0) {
+			if (StrEqual(value, "!picker", false)) {
+				int newtarget = GetClientAimTarget(client, false);
+				float playerorg[3]; GetClientEyePosition(newtarget, playerorg);
+				TeleportEntity(itarget, playerorg, NULL_VECTOR, NULL_VECTOR);
+			}
+			else if (StrEqual(value, "!self", false)) {
+				int newtarget = client;
+				float playerorg[3]; GetClientEyePosition(newtarget, playerorg);
+				TeleportEntity(itarget, playerorg, NULL_VECTOR, NULL_VECTOR);
+			}
+			else if (StrContains(value, "@", false) == 0) {
 				strcopy(value, 64, value[1]);
 				int newtarget = FindTarget(client, value, false, false);
 				if (newtarget != -1) {
@@ -511,9 +521,15 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 					TeleportEntity(itarget, playerorg, NULL_VECTOR, NULL_VECTOR);
 				}
 			}
+			else if (StrContains(value, "*", false) == 0) {
+				strcopy(value, 64, value[1]);
+				int newtarget = StringToInt(value);
+				float playerorg[3]; GetClientEyePosition(newtarget, playerorg);
+				TeleportEntity(itarget, playerorg, NULL_VECTOR, NULL_VECTOR);
+			}
 			else if (StrEqual(value, "")) {
 				if (iCounter == 1)
-					PrintToChat(client, "[SM] teleport <@playername>");
+					PrintToChat(client, "[SM] teleport <target>");
 			}
 			else {
 				if (iCounter == 1)
@@ -568,63 +584,63 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 			PropFieldType type;
 			int info = FindDataMapInfo(client, action, type);
 			if (info != -1) {
-			if (StrEqual(part[0], "set")) {
-				if (StrEqual(part[1], "")) {
+				if (StrEqual(part[0], "set")) {
+					if (StrEqual(part[1], "")) {
+						PrintToChat(client, "[SM] m_* get/set <value>");
+					}
+					else if (type == PropField_Integer) {
+						SetEntProp(itarget, Prop_Data, action, StringToInt(part[1]));
+						PrintToChat(client, "[SM] Set %s to %s", action, part[1]);
+					}
+					else if (type == PropField_Float) {
+						SetEntPropFloat(itarget, Prop_Data, action, StringToFloat(part[1]));
+						PrintToChat(client, "[SM] Set %s to %s", action, part[1]);
+					}
+					else if (type == PropField_String) {
+						SetEntPropString(itarget, Prop_Data, action, part[1]);
+						PrintToChat(client, "[SM] Set %s to %s", action, part[1]);
+					}
+					else if (type == PropField_Vector) {
+						float vector[3]; char num[64][6];
+						ExplodeString(part[1], " ", num, 3, sizeof(num), false);
+						vector[0] = StringToFloat(num[0]);
+						vector[1] = StringToFloat(num[1]);
+						vector[2] = StringToFloat(num[2]);
+						SetEntPropVector(itarget, Prop_Data, action, vector);
+						PrintToChat(client, "[SM] Set %s to %.0f %.0f %.0f", action, vector[0], vector[1], vector[2]);
+					}
+					else if (type == PropField_Entity) {
+						SetEntPropEnt(itarget, Prop_Data, action, StringToInt(part[1]));
+						PrintToChat(client, "[SM] Set %s to %s", action, part[1]);
+					}
+				}
+				else if (StrEqual(part[0], "get")) {
+					if (type == PropField_Integer) {
+						int data = GetEntProp(itarget, Prop_Data, action);
+						PrintToChat(client, "\x03%i", data);
+					}
+					else if (type == PropField_Float) {
+						float data = GetEntPropFloat(itarget, Prop_Data, action);
+						PrintToChat(client, "\x03%.0f", data);
+					}
+					else if (type == PropField_String) {
+						char buffer[256];
+						GetEntPropString(itarget, Prop_Data, action, buffer, sizeof(buffer));
+						PrintToChat(client, "\x03%s", buffer);
+					}
+					else if (type == PropField_Vector) {
+						float vector[3];
+						GetEntPropVector(itarget, Prop_Data, action, vector);
+						PrintToChat(client, "\x03%.0f %.0f %.0f", vector[0], vector[1], vector[2]);
+					}
+					else if (type == PropField_Entity) {
+						int data = GetEntPropEnt(itarget, Prop_Data, action);
+						PrintToChat(client, "\x03%i", data);
+					}
+				}
+				else {
 					PrintToChat(client, "[SM] m_* get/set <value>");
 				}
-				else if (type == PropField_Integer) {
-					SetEntProp(itarget, Prop_Send, action, StringToInt(part[1]));
-					PrintToChat(client, "[SM] Set %s to %s", action, part[1]);
-				}
-				else if (type == PropField_Float) {
-					SetEntPropFloat(itarget, Prop_Send, action, StringToFloat(part[1]));
-					PrintToChat(client, "[SM] Set %s to %s", action, part[1]);
-				}
-				else if (type == PropField_String) {
-					SetEntPropString(itarget, Prop_Send, action, part[1]);
-					PrintToChat(client, "[SM] Set %s to %s", action, part[1]);
-				}
-				else if (type == PropField_Vector) {
-					float vector[3]; char num[64][6];
-					ExplodeString(part[1], " ", num, 3, sizeof(num), false);
-					vector[0] = StringToFloat(num[0]);
-					vector[1] = StringToFloat(num[1]);
-					vector[2] = StringToFloat(num[2]);
-					SetEntPropVector(itarget, Prop_Send, action, vector);
-					PrintToChat(client, "[SM] Set %s to %.0f %.0f %.0f", action, vector[0], vector[1], vector[2]);
-				}
-				else if (type == PropField_Entity) {
-					SetEntPropEnt(itarget, Prop_Send, action, StringToInt(part[1]));
-					PrintToChat(client, "[SM] Set %s to %s", action, part[1]);
-				}
-			}
-			else if (StrEqual(part[0], "get")) {
-				if (type == PropField_Integer) {
-					int data = GetEntProp(itarget, Prop_Data, action);
-					PrintToChat(client, "\x03%i", data);
-				}
-				else if (type == PropField_Float) {
-					float data = GetEntPropFloat(itarget, Prop_Data, action);
-					PrintToChat(client, "\x03%.0f", data);
-				}
-				else if (type == PropField_String) {
-					char buffer[256];
-					GetEntPropString(itarget, Prop_Data, action, buffer, sizeof(buffer));
-					PrintToChat(client, "\x03%s", buffer);
-				}
-				else if (type == PropField_Vector) {
-					float vector[3];
-					GetEntPropVector(itarget, Prop_Data, action, vector);
-					PrintToChat(client, "\x03%.0f %.0f %.0f", vector[0], vector[1], vector[2]);
-				}
-				else if (type == PropField_Entity) {
-					int data = GetEntPropEnt(itarget, Prop_Data, action);
-					PrintToChat(client, "\x03%i", data);
-				}
-			}
-			else {
-				PrintToChat(client, "[SM] m_* get/set <value>");
-			}
 			}
 			else {
 				PrintToChat(client, "[SM] %s not found!", action);
