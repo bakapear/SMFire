@@ -618,6 +618,9 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 						SetEntPropEnt(itarget, Prop_Data, action, StringToInt(part[1]));
 						PrintToChat(client, "[SM] Set %s to %s", action, part[1]);
 					}
+					else {
+						PrintToChat(client, "[SM] Type not supported!");
+					}
 				}
 				else if (StrEqual(part[0], "get")) {
 					if (type == PropField_Integer) {
@@ -626,7 +629,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 					}
 					else if (type == PropField_Float) {
 						float data = GetEntPropFloat(itarget, Prop_Data, action);
-						PrintToChat(client, "\x03%.0f", data);
+						PrintToChat(client, "\x03%.2f", data);
 					}
 					else if (type == PropField_String) {
 						char buffer[256];
@@ -641,6 +644,9 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 					else if (type == PropField_Entity) {
 						int data = GetEntPropEnt(itarget, Prop_Data, action);
 						PrintToChat(client, "\x03%i", data);
+					}
+					else {
+						PrintToChat(client, "[SM] Type not supported!");
 					}
 				}
 				else {
