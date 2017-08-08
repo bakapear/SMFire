@@ -470,6 +470,9 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 			fHandScale[itarget] = 1.0;
 			SetVariantString("1.0");
 			AcceptEntityInput(itarget, "setmodelscale");
+			SetEntPropFloat(itarget, Prop_Send, "m_flHeadScale", 1.0);
+			SetEntPropFloat(itarget, Prop_Send, "m_flTorsoScale", 1.0);
+			SetEntPropFloat(itarget, Prop_Send, "m_flHandScale", 1.0);
 		}
 		else {
 			if (iCounter == 1)
@@ -505,27 +508,29 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		if (StrEqual(ename, "player")) {
 			if (StrEqual(value, "!picker", false)) {
 				int newtarget = GetClientAimTarget(client, false);
-				float playerorg[3]; GetClientEyePosition(newtarget, playerorg);
-				TeleportEntity(itarget, playerorg, NULL_VECTOR, NULL_VECTOR);
+				float entorg[3]; GetEntPropVector(newtarget, Prop_Data, "m_vecAbsOrigin", entorg);
+				TeleportEntity(itarget, entorg, NULL_VECTOR, NULL_VECTOR);
 			}
 			else if (StrEqual(value, "!self", false)) {
 				int newtarget = client;
-				float playerorg[3]; GetClientEyePosition(newtarget, playerorg);
-				TeleportEntity(itarget, playerorg, NULL_VECTOR, NULL_VECTOR);
+				float entorg[3]; GetEntPropVector(newtarget, Prop_Data, "m_vecAbsOrigin", entorg);
+				TeleportEntity(itarget, entorg, NULL_VECTOR, NULL_VECTOR);
 			}
 			else if (StrContains(value, "@", false) == 0) {
-				strcopy(value, 64, value[1]);
-				int newtarget = FindTarget(client, value, false, false);
+				char tvalue[256];
+				strcopy(tvalue, 64, value[1]);
+				int newtarget = FindTarget(client, tvalue, false, false);
 				if (newtarget != -1) {
-					float playerorg[3]; GetClientEyePosition(newtarget, playerorg);
-					TeleportEntity(itarget, playerorg, NULL_VECTOR, NULL_VECTOR);
+					float entorg[3]; GetEntPropVector(newtarget, Prop_Data, "m_vecAbsOrigin", entorg);
+					TeleportEntity(itarget, entorg, NULL_VECTOR, NULL_VECTOR);
 				}
 			}
 			else if (StrContains(value, "*", false) == 0) {
-				strcopy(value, 64, value[1]);
-				int newtarget = StringToInt(value);
-				float playerorg[3]; GetClientEyePosition(newtarget, playerorg);
-				TeleportEntity(itarget, playerorg, NULL_VECTOR, NULL_VECTOR);
+				char tvalue[256];
+				strcopy(tvalue, 64, value[1]);
+				int newtarget = StringToInt(tvalue);
+				float entorg[3]; GetEntPropVector(newtarget, Prop_Data, "m_vecAbsOrigin", entorg);
+				TeleportEntity(itarget, entorg, NULL_VECTOR, NULL_VECTOR);
 			}
 			else if (StrEqual(value, "")) {
 				if (iCounter == 1)
