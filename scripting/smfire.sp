@@ -585,29 +585,25 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 	}
 	else if (StrContains(action, "m_", false) == 0) {
 		if (multiple == false) {
-			char part[32][6]; ExplodeString(value, " ", part, 2, sizeof(part), true);
 			PropFieldType type;
 			int info = FindDataMapInfo(client, action, type);
 			if (info != -1) {
-				if (StrEqual(part[0], "set")) {
-					if (StrEqual(part[1], "")) {
-						PrintToChat(client, "[SM] m_* get/set <value>");
-					}
-					else if (type == PropField_Integer) {
-						SetEntProp(itarget, Prop_Data, action, StringToInt(part[1]));
-						PrintToChat(client, "[SM] Set %s to %s", action, part[1]);
+				if (!StrEqual(value, "")) {
+					if (type == PropField_Integer) {
+						SetEntProp(itarget, Prop_Data, action, StringToInt(value));
+						PrintToChat(client, "[SM] Set %s to %s", action, value);
 					}
 					else if (type == PropField_Float) {
-						SetEntPropFloat(itarget, Prop_Data, action, StringToFloat(part[1]));
-						PrintToChat(client, "[SM] Set %s to %s", action, part[1]);
+						SetEntPropFloat(itarget, Prop_Data, action, StringToFloat(value));
+						PrintToChat(client, "[SM] Set %s to %s", action, value);
 					}
 					else if (type == PropField_String) {
-						SetEntPropString(itarget, Prop_Data, action, part[1]);
-						PrintToChat(client, "[SM] Set %s to %s", action, part[1]);
+						SetEntPropString(itarget, Prop_Data, action, value);
+						PrintToChat(client, "[SM] Set %s to %s", action, value);
 					}
 					else if (type == PropField_Vector) {
 						float vector[3]; char num[64][6];
-						ExplodeString(part[1], " ", num, 3, sizeof(num), false);
+						ExplodeString(value, " ", num, 3, sizeof(num), false);
 						vector[0] = StringToFloat(num[0]);
 						vector[1] = StringToFloat(num[1]);
 						vector[2] = StringToFloat(num[2]);
@@ -615,14 +611,14 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 						PrintToChat(client, "[SM] Set %s to %.0f %.0f %.0f", action, vector[0], vector[1], vector[2]);
 					}
 					else if (type == PropField_Entity) {
-						SetEntPropEnt(itarget, Prop_Data, action, StringToInt(part[1]));
-						PrintToChat(client, "[SM] Set %s to %s", action, part[1]);
+						SetEntPropEnt(itarget, Prop_Data, action, StringToInt(value));
+						PrintToChat(client, "[SM] Set %s to %s", action, value);
 					}
 					else {
 						PrintToChat(client, "[SM] Type not supported!");
 					}
 				}
-				else if (StrEqual(part[0], "get")) {
+				else {
 					if (type == PropField_Integer) {
 						int data = GetEntProp(itarget, Prop_Data, action);
 						PrintToChat(client, "\x03%i", data);
@@ -649,12 +645,9 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 						PrintToChat(client, "[SM] Type not supported!");
 					}
 				}
-				else {
-					PrintToChat(client, "[SM] m_* get/set <value>");
-				}
 			}
 			else {
-				PrintToChat(client, "[SM] %s not found!", action);
+				PrintToChat(client, "[SM] %s not a datamap!", action);
 			}
 		}
 		else {
