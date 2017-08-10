@@ -638,7 +638,34 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 			PropFieldType type;
 			int info = FindDataMapInfo(client, action, type);
 			if (info != -1) {
-				if (!StrEqual(value, "")) {
+				if (StrEqual(value, "")) {
+					if (type == PropField_Integer) {
+						int data = GetEntProp(itarget, Prop_Data, action);
+						PrintToChat(client, "\x03%i", data);
+					}
+					else if (type == PropField_Float) {
+						float data = GetEntPropFloat(itarget, Prop_Data, action);
+						PrintToChat(client, "\x03%.2f", data);
+					}
+					else if (type == PropField_String) {
+						char buffer[256];
+						GetEntPropString(itarget, Prop_Data, action, buffer, sizeof(buffer));
+						PrintToChat(client, "\x03%s", buffer);
+					}
+					else if (type == PropField_Vector) {
+						float vector[3];
+						GetEntPropVector(itarget, Prop_Data, action, vector);
+						PrintToChat(client, "\x03%.0f %.0f %.0f", vector[0], vector[1], vector[2]);
+					}
+					else if (type == PropField_Entity) {
+						int data = GetEntPropEnt(itarget, Prop_Data, action);
+						PrintToChat(client, "\x03%i", data);
+					}
+					else {
+						PrintToChat(client, "[SM] Type not supported!");
+					}
+				}
+				else {
 					if (type == PropField_Integer) {
 						SetEntProp(itarget, Prop_Data, action, StringToInt(value));
 						PrintToChat(client, "[SM] Set %s to %s", action, value);
@@ -663,33 +690,6 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 					else if (type == PropField_Entity) {
 						SetEntPropEnt(itarget, Prop_Data, action, StringToInt(value));
 						PrintToChat(client, "[SM] Set %s to %s", action, value);
-					}
-					else {
-						PrintToChat(client, "[SM] Type not supported!");
-					}
-				}
-				else {
-					if (type == PropField_Integer) {
-						int data = GetEntProp(itarget, Prop_Data, action);
-						PrintToChat(client, "\x03%i", data);
-					}
-					else if (type == PropField_Float) {
-						float data = GetEntPropFloat(itarget, Prop_Data, action);
-						PrintToChat(client, "\x03%.2f", data);
-					}
-					else if (type == PropField_String) {
-						char buffer[256];
-						GetEntPropString(itarget, Prop_Data, action, buffer, sizeof(buffer));
-						PrintToChat(client, "\x03%s", buffer);
-					}
-					else if (type == PropField_Vector) {
-						float vector[3];
-						GetEntPropVector(itarget, Prop_Data, action, vector);
-						PrintToChat(client, "\x03%.0f %.0f %.0f", vector[0], vector[1], vector[2]);
-					}
-					else if (type == PropField_Entity) {
-						int data = GetEntPropEnt(itarget, Prop_Data, action);
-						PrintToChat(client, "\x03%i", data);
 					}
 					else {
 						PrintToChat(client, "[SM] Type not supported!");
@@ -737,6 +737,7 @@ void ent_trace(int client, float startpos[3], float startang[3], float endpos[3]
 			float propang[3];
 			propang[1] = 180 + startang[1];
 			TeleportEntity(prop, endpos, propang, NULL_VECTOR);
+			SetEntityRenderMode(prop, RENDER_TRANSALPHAADD);
 		}
 	}
 	else if (StrEqual(action, "create", false)) {
