@@ -5,7 +5,8 @@
 #include <tf2_stocks>
 
 int iCounter;
-int iEntity[MAXPLAYERS + 1] = 0;
+int iCopy[MAXPLAYERS + 1];
+int iEntity[MAXPLAYERS + 1];
 float fHeadScale[MAXPLAYERS + 1];
 float fTorsoScale[MAXPLAYERS + 1];
 float fHandScale[MAXPLAYERS + 1];
@@ -15,8 +16,8 @@ int iVoicePitch[MAXPLAYERS + 1];
 public Plugin myinfo =  {
 	name = "SM_Fire", 
 	author = "pear", 
-	description = "", 
-	version = "1.0", 
+	description = "entity debugging", 
+	version = "1.1", 
 	url = ""
 };
 
@@ -370,12 +371,10 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 					float entang[3]; GetEntPropVector(itarget, Prop_Data, "m_angRotation", entang);
 					float entorg[3]; GetEntPropVector(itarget, Prop_Data, "m_vecOrigin", entorg);
 					int ent = CreateEntityByName("prop_dynamic");
-					if (ent != -1) {
-						DispatchKeyValue(ent, "targetname", tname);
-						DispatchKeyValue(ent, "model", model);
-						DispatchKeyValue(ent, "solid", "6");
-						DispatchKeyValue(ent, "physdamagescale", "0.0");
-					}
+					DispatchKeyValue(ent, "targetname", tname);
+					DispatchKeyValue(ent, "model", model);
+					DispatchKeyValue(ent, "solid", "6");
+					DispatchKeyValue(ent, "physdamagescale", "0.0");
 					DispatchSpawn(ent);
 					ActivateEntity(ent);
 					char num[32][12]; ExplodeString(value, " ", num, 12, sizeof(num));
@@ -386,6 +385,11 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 					entang[1] += StringToFloat(num[4]);
 					entang[2] += StringToFloat(num[5]);
 					TeleportEntity(ent, entorg, entang, NULL_VECTOR);
+					int red, green, blue, alpha;
+					GetEntityRenderColor(itarget, red, green, blue, alpha);
+					SetEntityRenderColor(ent, red, green, blue, alpha);
+					SetEntityRenderMode(ent, GetEntityRenderMode(itarget));
+					SetEntityRenderFx(ent, GetEntityRenderFx(itarget));
 				}
 			}
 			else {
@@ -729,6 +733,7 @@ void ent_trace(int client, float startpos[3], float startang[3], float endpos[3]
 			DispatchKeyValue(prop, "Solid", "6");
 			DispatchKeyValue(prop, "model", value);
 			DispatchSpawn(prop);
+			ActivateEntity(prop);
 			float propang[3];
 			propang[1] = 180 + startang[1];
 			TeleportEntity(prop, endpos, propang, NULL_VECTOR);
@@ -790,6 +795,7 @@ void ent_trace(int client, float startpos[3], float startang[3], float endpos[3]
 			char ename[128]; GetEntityClassname(iEntity[client], ename, sizeof(ename));
 			PrintToChat(client, "[SM] Entity %i > %s spawned.", iEntity[client], ename);
 			DispatchSpawn(iEntity[client]);
+			ActivateEntity(iEntity[client]);
 			float propang[3];
 			propang[1] = 180 + startang[1];
 			TeleportEntity(iEntity[client], endpos, propang, NULL_VECTOR);
@@ -799,5 +805,39 @@ void ent_trace(int client, float startpos[3], float startang[3], float endpos[3]
 			PrintToChat(client, "[SM] No entity created yet.", iEntity[client]);
 		}
 	}
-	
+	else if (StrEqual(action, "copy", false)) {
+		char ename[256]; GetEntityClassname(entity, ename, sizeof(ename));
+		if (StrEqual(ename, "prop_dynamic")) {
+			iCopy[client] = entity;
+			PrintToChat(client, "[SM] %i > %s copied.", iCopy[client], ename);
+		}
+		else {
+			PrintToChat(client, "[SM] Target must be a prop!");
+		}
+	}
+	else if (StrEqual(action, "paste", false)) {
+		if (iCopy[client] != 0) {
+			char model[512]; GetEntPropString(iCopy[client], Prop_Data, "m_ModelName", model, sizeof(model));
+			char tname[128]; GetEntPropString(iCopy[client], Prop_Data, "m_iName", tname, sizeof(tname));
+			float entang[3]; GetEntPropVector(iCopy[client], Prop_Data, "m_angRotation", entang);
+			float entorg[3]; GetEntPropVector(iCopy[client], Prop_Data, "m_vecOrigin", entorg);
+			PrecacheModel(model);
+			int prop = CreateEntityByName("prop_dynamic");
+			DispatchKeyValue(prop, "targetname", tname);
+			DispatchKeyValue(prop, "physdamagescale", "0.0");
+			DispatchKeyValue(prop, "solid", "6");
+			DispatchKeyValue(prop, "model", model);
+			DispatchSpawn(prop);
+			ActivateEntity(prop);
+			TeleportEntity(prop, endpos, entang, NULL_VECTOR);
+			int red, green, blue, alpha;
+			GetEntityRenderColor(iCopy[client], red, green, blue, alpha);
+			SetEntityRenderColor(prop, red, green, blue, alpha);
+			SetEntityRenderMode(prop, GetEntityRenderMode(iCopy[client]));
+			SetEntityRenderFx(prop, GetEntityRenderFx(iCopy[client]));
+		}
+		else {
+			PrintToChat(client, "[SM] No entity copied yet!");
+		}
+	}
 } 
