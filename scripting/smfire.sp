@@ -12,6 +12,9 @@ float fTorsoScale[MAXPLAYERS + 1];
 float fHandScale[MAXPLAYERS + 1];
 bool bThirdperson[MAXPLAYERS + 1];
 int iVoicePitch[MAXPLAYERS + 1];
+bool bShift[MAXPLAYERS + 1];
+int iShiftMode[MAXPLAYERS + 1];
+int iShift[MAXPLAYERS + 1];
 
 public Plugin myinfo =  {
 	name = "SM_Fire", 
@@ -64,7 +67,21 @@ public Action spawn_thirdperson(Handle timer, any client) {
 }
 
 public bool filter_player(int entity, int mask, any data) {
-	return entity > GetMaxClients() || !entity;
+	if (entity == data) {
+		return false;
+	}
+	else {
+		return true;
+	}
+}
+
+public bool filter_multiple(int entity, int mask, any data) {
+	if (entity == data || entity == iShift[data]) {
+		return false;
+	}
+	else {
+		return true;
+	}
 }
 
 public Action hook_sound(int clients[64], int &numclients, char sample[PLATFORM_MAX_PATH], int &entity, int &channel, float &volume, int &level, int &pitch, int &flags) {
@@ -76,6 +93,40 @@ public Action hook_sound(int clients[64], int &numclients, char sample[PLATFORM_
 		}
 	}
 	return Plugin_Continue;
+}
+
+public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float velocity[3], float angles[3], int &weapon) {
+	if (bShift[client] == true && iShift[client] != 0 && IsValidEntity(iShift[client])) {
+		float playerang[3]; GetClientEyeAngles(client, playerang);
+		float playerorg[3]; GetClientEyePosition(client, playerorg);
+		float entorg[3]; GetEntPropVector(iShift[client], Prop_Data, "m_vecOrigin", entorg);
+		float entang[3]; GetEntPropVector(iShift[client], Prop_Data, "m_angRotation", entang);
+		Handle trace = TR_TraceRayFilterEx(playerorg, playerang, MASK_SHOT, RayType_Infinite, filter_multiple, client);
+		float endpos[3]; TR_GetEndPosition(endpos, trace);
+		if (iShiftMode[client] == 1) {  //origin + angles
+			entang[1] = playerang[1];
+		}
+		else if (iShiftMode[client] == 2) {  //only angles
+			entang[1] = playerang[1];
+			endpos[0] = entorg[0];
+			endpos[1] = entorg[1];
+			endpos[2] = entorg[2];
+		}
+		else if (iShiftMode[client] == 3) {  //x pos
+			endpos[1] = entorg[1];
+			endpos[2] = entorg[2];
+		}
+		else if (iShiftMode[client] == 4) {  //y pos
+			endpos[0] = entorg[0];
+			endpos[2] = entorg[2];
+		}
+		else if (iShiftMode[client] == 5) {  //z pos
+			endpos[1] = entorg[1];
+			endpos[0] = entorg[0];
+		}
+		TeleportEntity(iShift[client], endpos, entang, NULL_VECTOR);
+		CloseHandle(trace);
+	}
 }
 
 public Action sm_fire(int client, int args) {
@@ -161,7 +212,7 @@ void ent_fire(int client, char[] target, char[] action, char[] value) {
 	else if (StrEqual(target, "!aim", false)) {
 		float playerang[3]; GetClientEyeAngles(client, playerang);
 		float playerorg[3]; GetClientEyePosition(client, playerorg);
-		Handle trace = TR_TraceRayFilterEx(playerorg, playerang, MASK_SHOT, RayType_Infinite, filter_player);
+		Handle trace = TR_TraceRayFilterEx(playerorg, playerang, MASK_SHOT, RayType_Infinite, filter_player, client);
 		if (TR_DidHit(trace)) {
 			float endpos[3]; TR_GetEndPosition(endpos, trace);
 			int entity = TR_GetEntityIndex(trace);
@@ -839,6 +890,25 @@ void ent_trace(int client, float startpos[3], float startang[3], float endpos[3]
 		}
 		else {
 			PrintToChat(client, "[SM] No entity copied yet!");
+		}
+	}
+	else if (StrEqual(action, "shift", false)) {
+		if (bShift[client] == false) {
+			if (IsValidEntity(entity) && entity > 0) {
+				bShift[client] = true;
+				iShift[client] = entity;
+				iShiftMode[client] = StringToInt(value);
+				PrintToChat(client, "[SM] Started shifting %i", iShift[client]);
+			}
+			else {
+				PrintToChat(client, "[SM] Invalid entity!");
+			}
+		}
+		else {
+			bShift[client] = false;
+			iShift[client] = 0;
+			iShiftMode[client] = 0;
+			PrintToChat(client, "[SM] Stopped shifting.");
 		}
 	}
 } 
