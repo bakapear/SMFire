@@ -20,7 +20,7 @@ public Plugin myinfo =  {
 	name = "SM_Fire", 
 	author = "pear", 
 	description = "entity debugging", 
-	version = "1.1", 
+	version = "1.2", 
 	url = ""
 };
 
