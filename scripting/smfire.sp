@@ -437,7 +437,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 					PrintToChat(client, "[SM] setheadscale <value>");
 			}
 			else {
-				fHeadScale[client] = StringToFloat(value);
+				fHeadScale[itarget] = StringToFloat(value);
 				SetEntPropFloat(itarget, Prop_Send, "m_flHeadScale", fHeadScale[itarget]);
 			}
 		}
@@ -454,7 +454,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 					PrintToChat(client, "[SM] settorsoscale <value>");
 			}
 			else {
-				fTorsoScale[client] = StringToFloat(value);
+				fTorsoScale[itarget] = StringToFloat(value);
 				SetEntPropFloat(itarget, Prop_Send, "m_flTorsoScale", fTorsoScale[itarget]);
 			}
 		}
@@ -471,7 +471,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 					PrintToChat(client, "[SM] sethandscale <value>");
 			}
 			else {
-				fHandScale[client] = StringToFloat(value);
+				fHandScale[itarget] = StringToFloat(value);
 				SetEntPropFloat(itarget, Prop_Send, "m_flHandScale", fHandScale[itarget]);
 			}
 		}
