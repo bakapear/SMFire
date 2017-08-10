@@ -616,6 +616,19 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 				PrintToChat(client, "[SM] Target must be a player!");
 		}
 	}
+	else if (StrEqual(action, "color", false)) {
+		char num[32][6]; ExplodeString(value, "+", num, 6, sizeof(num));
+		int red = StringToInt(num[0]);
+		int green = StringToInt(num[1]);
+		int blue = StringToInt(num[2]);
+		int alpha = StringToInt(num[3]);
+		if (StrEqual(num[0], "")) { red = 255; }
+		if (StrEqual(num[1], "")) { green = 255; }
+		if (StrEqual(num[2], "")) { blue = 255; }
+		if (StrEqual(num[3], "")) { alpha = 255; }
+		SetEntityRenderColor(itarget, red, green, blue, alpha);
+		SetEntityRenderMode(itarget, RENDER_TRANSALPHAADD);
+	}
 	else if (StrContains(action, "m_", false) == 0) {
 		if (multiple == false) {
 			PropFieldType type;
