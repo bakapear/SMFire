@@ -10,6 +10,7 @@ float fHeadScale[MAXPLAYERS + 1];
 float fTorsoScale[MAXPLAYERS + 1];
 float fHandScale[MAXPLAYERS + 1];
 bool bThirdperson[MAXPLAYERS + 1];
+int iVoicePitch[MAXPLAYERS + 1];
 
 public Plugin myinfo =  {
 	name = "SM_Fire", 
@@ -23,11 +24,13 @@ public void OnPluginStart() {
 	LoadTranslations("common.phrases");
 	RegAdminCmd("sm_fire", sm_fire, ADMFLAG_BAN, "[SM] Usage: sm_fire <target> <action> <value>");
 	HookEvent("player_spawn", event_playerspawn, EventHookMode_Post);
+	AddNormalSoundHook(hook_sound);
 	for (int i = 1; i <= MaxClients; i++) {
 		fHeadScale[i] = 1.0;
 		fTorsoScale[i] = 1.0;
 		fHandScale[i] = 1.0;
 		bThirdperson[i] = false;
+		iVoicePitch[i] = 100;
 	}
 }
 
@@ -61,6 +64,17 @@ public Action spawn_thirdperson(Handle timer, any client) {
 
 public bool filter_player(int entity, int mask, any data) {
 	return entity > GetMaxClients() || !entity;
+}
+
+public Action hook_sound(int clients[64], int &numclients, char sample[PLATFORM_MAX_PATH], int &entity, int &channel, float &volume, int &level, int &pitch, int &flags) {
+	if (channel == SNDCHAN_VOICE && entity >= 1 && entity <= MaxClients) {
+		if (iVoicePitch[entity] != 100) {
+			pitch = iVoicePitch[entity];
+			flags |= SND_CHANGEPITCH;
+			return Plugin_Changed;
+		}
+	}
+	return Plugin_Continue;
 }
 
 public Action sm_fire(int client, int args) {
@@ -575,6 +589,25 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 			else {
 				int condition = StringToInt(value);
 				TF2_RemoveCondition(itarget, view_as<TFCond>(condition));
+			}
+		}
+		else {
+			if (iCounter == 1)
+				PrintToChat(client, "[SM] Target must be a player!");
+		}
+	}
+	else if (StrEqual(action, "pitch", false)) {
+		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
+		if (StrEqual(ename, "player")) {
+			if (StrEqual(value, "")) {
+				iVoicePitch[itarget] = 100;
+				if (iCounter == 1)
+					PrintToChat(client, "[SM] your pitch has been reset");
+			}
+			else {
+				iVoicePitch[itarget] = StringToInt(value);
+				if (iCounter == 1)
+					PrintToChat(client, "[SM] pitch changed to %s", value);
 			}
 			
 		}
