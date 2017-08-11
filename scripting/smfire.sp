@@ -97,35 +97,43 @@ public Action hook_sound(int clients[64], int &numclients, char sample[PLATFORM_
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float velocity[3], float angles[3], int &weapon) {
 	if (bShift[client] == true && iShift[client] != 0 && IsValidEntity(iShift[client])) {
-		float playerang[3]; GetClientEyeAngles(client, playerang);
-		float playerorg[3]; GetClientEyePosition(client, playerorg);
-		float entorg[3]; GetEntPropVector(iShift[client], Prop_Data, "m_vecOrigin", entorg);
-		float entang[3]; GetEntPropVector(iShift[client], Prop_Data, "m_angRotation", entang);
-		Handle trace = TR_TraceRayFilterEx(playerorg, playerang, MASK_SHOT, RayType_Infinite, filter_multiple, client);
-		float endpos[3]; TR_GetEndPosition(endpos, trace);
-		if (iShiftMode[client] == 1) {  //origin + angles
-			entang[1] = playerang[1];
+		if (IsPlayerAlive(client)) {
+			float playerang[3]; GetClientEyeAngles(client, playerang);
+			float playerorg[3]; GetClientEyePosition(client, playerorg);
+			float entorg[3]; GetEntPropVector(iShift[client], Prop_Data, "m_vecOrigin", entorg);
+			float entang[3]; GetEntPropVector(iShift[client], Prop_Data, "m_angRotation", entang);
+			Handle trace = TR_TraceRayFilterEx(playerorg, playerang, MASK_SHOT, RayType_Infinite, filter_multiple, client);
+			float endpos[3]; TR_GetEndPosition(endpos, trace);
+			if (iShiftMode[client] == 1) {  //origin + angles
+				entang[1] = playerang[1];
+			}
+			else if (iShiftMode[client] == 2) {  //only angles
+				entang[1] = playerang[1];
+				endpos[0] = entorg[0];
+				endpos[1] = entorg[1];
+				endpos[2] = entorg[2];
+			}
+			else if (iShiftMode[client] == 3) {  //x pos
+				endpos[1] = entorg[1];
+				endpos[2] = entorg[2];
+			}
+			else if (iShiftMode[client] == 4) {  //y pos
+				endpos[0] = entorg[0];
+				endpos[2] = entorg[2];
+			}
+			else if (iShiftMode[client] == 5) {  //z pos
+				endpos[1] = entorg[1];
+				endpos[0] = entorg[0];
+			}
+			TeleportEntity(iShift[client], endpos, entang, NULL_VECTOR);
+			CloseHandle(trace);
 		}
-		else if (iShiftMode[client] == 2) {  //only angles
-			entang[1] = playerang[1];
-			endpos[0] = entorg[0];
-			endpos[1] = entorg[1];
-			endpos[2] = entorg[2];
+		else {
+			bShift[client] = false;
+			iShift[client] = 0;
+			iShiftMode[client] = 0;
+			PrintToChat(client, "[SM] Stopped shifting.");
 		}
-		else if (iShiftMode[client] == 3) {  //x pos
-			endpos[1] = entorg[1];
-			endpos[2] = entorg[2];
-		}
-		else if (iShiftMode[client] == 4) {  //y pos
-			endpos[0] = entorg[0];
-			endpos[2] = entorg[2];
-		}
-		else if (iShiftMode[client] == 5) {  //z pos
-			endpos[1] = entorg[1];
-			endpos[0] = entorg[0];
-		}
-		TeleportEntity(iShift[client], endpos, entang, NULL_VECTOR);
-		CloseHandle(trace);
 	}
 }
 
@@ -169,7 +177,7 @@ void ent_fire(int client, char[] target, char[] action, char[] value) {
 		}
 		else {
 			for (int i = 1; i <= MaxClients; i++) {
-				if (IsClientInGame(i)) {
+				if (IsClientInGame(i) && IsClientConnected(i)) {
 					int itarget = i;
 					ent_action(client, itarget, action, value, true);
 				}
@@ -178,7 +186,7 @@ void ent_fire(int client, char[] target, char[] action, char[] value) {
 	}
 	else if (StrEqual(target, "!blue", false)) {
 		for (int i = 1; i <= MaxClients; i++) {
-			if (IsClientInGame(i)) {
+			if (IsClientInGame(i) && IsClientConnected(i)) {
 				int team = GetClientTeam(i);
 				if (team == 3) {
 					int itarget = i;
@@ -190,7 +198,7 @@ void ent_fire(int client, char[] target, char[] action, char[] value) {
 	}
 	else if (StrEqual(target, "!red", false)) {
 		for (int i = 1; i <= MaxClients; i++) {
-			if (IsClientInGame(i)) {
+			if (IsClientInGame(i) && IsClientConnected(i)) {
 				int team = GetClientTeam(i);
 				if (team == 2) {
 					int itarget = i;
@@ -202,7 +210,7 @@ void ent_fire(int client, char[] target, char[] action, char[] value) {
 	}
 	else if (StrEqual(target, "!bots", false)) {
 		for (int i = 1; i <= MaxClients; i++) {
-			if (IsFakeClient(i)) {
+			if (IsFakeClient(i) && IsClientInGame(i) && IsClientConnected(i)) {
 				int itarget = i;
 				ent_action(client, itarget, action, value, true);
 				num++;
