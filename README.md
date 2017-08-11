@@ -1,5 +1,5 @@
 # SMFire - TF2 Entity Debug Plugin
-sm_fire `<target> <action> <value>`
+`sm_fire <target> <action> <value>`
 
 At first the plugin might seem a bit complicated, because it doesn't show a list of commands for you. It's just one command with many features! So here I'll list all features currently available in SMFire.
 ## TARGETS
@@ -24,7 +24,7 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - teleport `<target>`
 - {datamap manipulation}
 #### SINGLE + MULTIPLE
-- data (full)
+- data `*full`
 - removeslot `<0-5>`
 - stun `<duration>`
 - setname `<name>`
@@ -46,7 +46,7 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - color `<R+G+B+A> [0-255]`
 - {all other ent_fire actions}
 #### ONLY SPECIAL
-- data (full)
+- data `*full`
 - prop `<modelpath>`
 - create `<classname>`
 - value `<key> <value>`
@@ -54,7 +54,7 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - delete
 - copy
 - paste
-- shift (0-360)
+- shift `*0-360`
 
 ## DATAMAP MANIPULATION
 If the action contains "m_" it will automatically be recognized as a datamap if it is a valid one and you can set different values for it in-game.
