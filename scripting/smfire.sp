@@ -20,7 +20,7 @@ public Plugin myinfo =  {
 	name = "SM_Fire", 
 	author = "pear", 
 	description = "entity debugging", 
-	version = "1.2.3", 
+	version = "1.3", 
 	url = ""
 };
 
@@ -761,6 +761,47 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 				ReplyToCommand(client, "[SM] Only one target allowed!");
 		}
 	}
+	else if (StrContains(action, "tf_weapon", false) == 0) {
+		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
+		if (StrEqual(ename, "player")) {
+			if (StrEqual(value, "")) {
+				if (iCounter == 1)
+					ReplyToCommand(client, "[SM] tf_weapon_* <index>");
+			}
+			else {
+				int wep = GetEntPropEnt(itarget, Prop_Data, "m_hActiveWeapon");
+				if (wep != -1) {
+					RemovePlayerItem(itarget, wep);
+					RemoveEdict(wep);
+					int ent = CreateEntityByName(action);
+					if (ent != -1 && IsValidEntity(ent)) {
+						SetEntProp(ent, Prop_Send, "m_bDisguiseWeapon", 1);
+						SetEntProp(ent, Prop_Send, "m_iItemDefinitionIndex", StringToInt(value));
+						SetEntProp(ent, Prop_Send, "m_iEntityQuality", 6);
+						SetEntProp(ent, Prop_Send, "m_iEntityLevel", 10);
+						SetEntPropEnt(ent, Prop_Send, "m_hOwner", client);
+						SetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity", client);
+						SetEntPropEnt(ent, Prop_Send, "moveparent", client);
+						SetEntProp(ent, Prop_Send, "m_bInitialized", 1);
+						DispatchSpawn(ent);
+						EquipPlayerWeapon(itarget, ent);
+					}
+					else {
+						if (iCounter == 1)
+							ReplyToCommand(client, "[SM] Invalid weapon");
+					}
+				}
+				else {
+					if (iCounter == 1)
+						ReplyToCommand(client, "[SM] No weapon to replace found!");
+				}
+			}
+		}
+		else {
+			if (iCounter == 1)
+				ReplyToCommand(client, "[SM] Target must be a player!");
+		}
+	}
 	else {
 		SetVariantString(value);
 		AcceptEntityInput(itarget, action);
@@ -837,7 +878,10 @@ void ent_trace(int client, float startpos[3], float startang[3], float endpos[3]
 		else {
 			if (iEntity[client] != 0) {
 				char ename[128]; GetEntityClassname(iEntity[client], ename, sizeof(ename));
-				char part[32][6]; ExplodeString(value, " ", part, 2, sizeof(part), true);
+				char part[256][6]; ExplodeString(value, " ", part, 2, sizeof(part), true);
+				if (StrEqual(part[0], "model", false) || StrEqual(part[0], "parent", false)) {
+					PrecacheModel(part[1]);
+				}
 				DispatchKeyValue(iEntity[client], part[0], part[1]);
 				ReplyToCommand(client, "[SM] Key:\"%s\" Value:\"%s\"", part[0], part[1]);
 				ReplyToCommand(client, "added to entity %i > %s", iEntity[client], ename);
