@@ -79,7 +79,7 @@ For instance, you could set the clipsize of your weapon like this:
 ## TF_WEAPON EQUIPPING
 `sm_fire <target> <tfweapon> <index>`
 
-Lets you equip any tf_weapon which will replace your current weapon holding. Works with multiple players!
+Lets you equip any tf_weapon with any index. Works with multiple players!
 
 [List of Indexes](https://wiki.alliedmods.net/Team_fortress_2_item_definition_indexes)
 
