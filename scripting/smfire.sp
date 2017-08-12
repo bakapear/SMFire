@@ -15,12 +15,13 @@ int iVoicePitch[MAXPLAYERS + 1];
 bool bShift[MAXPLAYERS + 1];
 int iShiftMode[MAXPLAYERS + 1];
 int iShift[MAXPLAYERS + 1];
+int iWeapon[MAXPLAYERS + 1];
 
 public Plugin myinfo =  {
 	name = "SM_Fire", 
 	author = "pear", 
 	description = "entity debugging", 
-	version = "1.3", 
+	version = "1.3.1", 
 	url = ""
 };
 
@@ -643,8 +644,6 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 			}
 			else {
 				iVoicePitch[itarget] = StringToInt(value);
-				if (iCounter == 1)
-					ReplyToCommand(client, "[SM] pitch changed to %s", value);
 			}
 			
 		}
@@ -769,31 +768,28 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 					ReplyToCommand(client, "[SM] tf_weapon_* <index>");
 			}
 			else {
-				int wep = GetEntPropEnt(itarget, Prop_Data, "m_hActiveWeapon");
-				if (wep != -1) {
-					RemovePlayerItem(itarget, wep);
-					RemoveEdict(wep);
-					int ent = CreateEntityByName(action);
-					if (ent != -1 && IsValidEntity(ent)) {
-						SetEntProp(ent, Prop_Send, "m_bDisguiseWeapon", 1);
-						SetEntProp(ent, Prop_Send, "m_iItemDefinitionIndex", StringToInt(value));
-						SetEntProp(ent, Prop_Send, "m_iEntityQuality", 6);
-						SetEntProp(ent, Prop_Send, "m_iEntityLevel", 10);
-						SetEntPropEnt(ent, Prop_Send, "m_hOwner", client);
-						SetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity", client);
-						SetEntPropEnt(ent, Prop_Send, "moveparent", client);
-						SetEntProp(ent, Prop_Send, "m_bInitialized", 1);
-						DispatchSpawn(ent);
-						EquipPlayerWeapon(itarget, ent);
-					}
-					else {
-						if (iCounter == 1)
-							ReplyToCommand(client, "[SM] Invalid weapon");
-					}
+				if(iWeapon[client] != 0) {
+					RemoveEdict(iWeapon[client]);
+					iWeapon[client] = 0;
+				}
+				int ent = CreateEntityByName(action);
+				if (ent != -1 && IsValidEntity(ent)) {
+					SetEntProp(ent, Prop_Send, "m_bDisguiseWeapon", 1);
+					SetEntProp(ent, Prop_Send, "m_iItemDefinitionIndex", StringToInt(value));
+					SetEntProp(ent, Prop_Send, "m_iEntityQuality", 6);
+					SetEntProp(ent, Prop_Send, "m_iEntityLevel", 10);
+					SetEntPropEnt(ent, Prop_Send, "m_hOwner", client);
+					SetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity", client);
+					SetEntPropEnt(ent, Prop_Send, "moveparent", client);
+					SetEntProp(ent, Prop_Send, "m_bInitialized", 1);
+					DispatchSpawn(ent);
+					EquipPlayerWeapon(itarget, ent);
+					SetEntPropEnt(itarget, Prop_Data, "m_hActiveWeapon", ent);
+					iWeapon[client] = ent;
 				}
 				else {
 					if (iCounter == 1)
-						ReplyToCommand(client, "[SM] No weapon to replace found!");
+						ReplyToCommand(client, "[SM] Invalid weapon!");
 				}
 			}
 		}
