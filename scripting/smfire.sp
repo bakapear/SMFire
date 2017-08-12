@@ -20,7 +20,7 @@ public Plugin myinfo =  {
 	name = "SM_Fire", 
 	author = "pear", 
 	description = "entity debugging", 
-	version = "1.2.1", 
+	version = "1.2.3", 
 	url = ""
 };
 
@@ -666,6 +666,23 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		SetEntityRenderColor(itarget, red, green, blue, alpha);
 		SetEntityRenderMode(itarget, RENDER_TRANSALPHAADD);
 	}
+	else if (StrEqual(action, "setclip", false)) {
+		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
+		if (StrEqual(ename, "player")) {
+			if (StrEqual(value, "")) {
+				if (iCounter == 1)
+					ReplyToCommand(client, "[SM] setclip <value>");
+			}
+			else {
+				int weapon = GetEntPropEnt(itarget, Prop_Data, "m_hActiveWeapon");
+				SetEntProp(weapon, Prop_Data, "m_iClip1", StringToInt(value));
+			}
+		}
+		else {
+			if (iCounter == 1)
+				ReplyToCommand(client, "[SM] Target must be a player!");
+		}
+	}
 	else if (StrContains(action, "m_", false) == 0) {
 		if (multiple == false) {
 			PropFieldType type;
@@ -721,8 +738,14 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 						ReplyToCommand(client, "[SM] Set %s to %.0f %.0f %.0f", action, vector[0], vector[1], vector[2]);
 					}
 					else if (type == PropField_Entity) {
-						SetEntPropEnt(itarget, Prop_Data, action, StringToInt(value));
-						ReplyToCommand(client, "[SM] Set %s to %s", action, value);
+						if (IsValidEntity(StringToInt(value))) {
+							SetEntPropEnt(itarget, Prop_Data, action, StringToInt(value));
+							ReplyToCommand(client, "[SM] Set %s to %s", action, value);
+						}
+						else {
+							ReplyToCommand(client, "[SM] Invalid entity!", action, value);
+						}
+						
 					}
 					else {
 						ReplyToCommand(client, "[SM] Type not supported!");
