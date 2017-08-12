@@ -24,7 +24,7 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - `teleport <target>`
 - {datamap manipulation}
 #### SINGLE + MULTIPLE
-- `data *full`
+- `data (full)`
 - `removeslot <0-5>`
 - `stun <duration>`
 - `setname <name>`
@@ -48,7 +48,7 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - {tf_weapon equipping}
 - {all other ent_fire actions}
 #### ONLY SPECIAL
-- `data *full`
+- `data (full)`
 - `prop <modelpath>`
 - `create <classname>`
 - `value <key> <value>`
@@ -56,7 +56,7 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - `delete`
 - `copy`
 - `paste`
-- `shift *0-360`
+- `shift (value)`
 
 ## DATAMAP MANIPULATION
 `sm_fire <target> <datamap> <*any>`
