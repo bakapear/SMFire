@@ -20,51 +20,54 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 
 ## ACTIONS
 #### SINGLE
-- copy `<x> <y> <z> <pitch> <yaw> <roll>`
-- teleport `<target>`
+- `copy <x> <y> <z> <pitch> <yaw> <roll>`
+- `teleport <target>`
 - {datamap manipulation}
 #### SINGLE + MULTIPLE
-- data `*full`
-- removeslot `<0-5>`
-- stun `<duration>`
-- setname `<name>`
-- kill
-- addorg `<x> <y> <z>`
-- addang `<pitch> <yaw> <roll>`
-- setorg `<x> <y> <z>`
-- setang `<pitch> <yaw> <roll>`
-- class `<tfclass>`
-- setheadscale `<scale>`
-- settorsoscale `<scale>`
-- sethandscale `<scale>`
-- resetscale
-- fp or firstperson
-- tp or thirdperson
-- addcond `<value>`
-- removecond `<value>`
-- pitch `<0-255>`
-- color `<R+G+B+A> [0-255]`
+- `data *full`
+- `removeslot <0-5>`
+- `stun <duration>`
+- `setname <name>`
+- `kill`
+- `addorg <x> <y> <z>`
+- `addang <pitch> <yaw> <roll>`
+- `setorg <x> <y> <z>`
+- `setang <pitch> <yaw> <roll>`
+- `class <tfclass>`
+- `setheadscale <scale>`
+- `settorsoscale <scale>`
+- `sethandscale <scale>`
+- `resetscale`
+- `fp or firstperson`
+- `tp or thirdperson`
+- `addcond <value>`
+- `removecond <value>`
+- `pitch <0-255>`
+- `color <R+G+B+A> [0-255]`
 - {all other ent_fire actions}
 #### ONLY SPECIAL
-- data `*full`
-- prop `<modelpath>`
-- create `<classname>`
-- value `<key> <value>`
-- spawn 
-- delete
-- copy
-- paste
-- shift `*0-360`
+- `data *full`
+- `prop <modelpath>`
+- `create <classname>`
+- `value <key> <value>`
+- `spawn `
+- `delete`
+- `copy`
+- `paste`
+- `shift *0-360`
 
 ## DATAMAP MANIPULATION
-If the action contains "m_" it will automatically be recognized as a datamap if it is a valid one and you can set different values for it in-game.
+`sm_fire <target> <datamap> <*any>`
 
-#### EXAMPLES
-sm_fire !self m_iHealth 541
-- sets clients health to 541.
+[List of Datamaps](https://github.com/powerlord/tf2-data/blob/master/datamaps.txt)
 
-sm_fire @jake m_hActiveWeapon
-- shows client jake's active weapon entity index
+Examples:
+- `m_iHealth` - player health
+- `m_iClip1` - weapon clip ammo
+- `m_hActiveWeapon` - players weapon currently active/holding
+- `m_iName` - targetname
+- `m_flMaxspeed` - max allowed speed of player
 
-sm_fire *73 m_iClip1 57
-- sets the clipsize of entity with index 73 to 57.
+For instance, you could set the clipsize of your weapon like this:
+1. `sm_fire !self h_ActiveWeapon` - gives you your active weapon entity index, lets say it's 73.
+2. `sm_fire *73 m_iClip1 50` - changes that weapons clipsize to 50! (not reloadable tho)
