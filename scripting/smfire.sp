@@ -20,7 +20,7 @@ public Plugin myinfo =  {
 	name = "SM_Fire", 
 	author = "pear", 
 	description = "entity debugging", 
-	version = "1.2", 
+	version = "1.2.1", 
 	url = ""
 };
 
@@ -104,26 +104,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float veloc
 			float entang[3]; GetEntPropVector(iShift[client], Prop_Data, "m_angRotation", entang);
 			Handle trace = TR_TraceRayFilterEx(playerorg, playerang, MASK_SHOT, RayType_Infinite, filter_multiple, client);
 			float endpos[3]; TR_GetEndPosition(endpos, trace);
-			if (iShiftMode[client] == 1) {  //origin + angles
-				entang[1] = playerang[1];
-			}
-			else if (iShiftMode[client] == 2) {  //only angles
-				entang[1] = playerang[1];
-				endpos[0] = entorg[0];
-				endpos[1] = entorg[1];
-				endpos[2] = entorg[2];
-			}
-			else if (iShiftMode[client] == 3) {  //x pos
-				endpos[1] = entorg[1];
-				endpos[2] = entorg[2];
-			}
-			else if (iShiftMode[client] == 4) {  //y pos
-				endpos[0] = entorg[0];
-				endpos[2] = entorg[2];
-			}
-			else if (iShiftMode[client] == 5) {  //z pos
-				endpos[1] = entorg[1];
-				endpos[0] = entorg[0];
+			if (iShiftMode[client] != 0) {
+				entang[1] = playerang[1] + iShiftMode[client];
 			}
 			TeleportEntity(iShift[client], endpos, entang, NULL_VECTOR);
 			CloseHandle(trace);
@@ -132,7 +114,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float veloc
 			bShift[client] = false;
 			iShift[client] = 0;
 			iShiftMode[client] = 0;
-			PrintToChat(client, "[SM] Stopped shifting.");
+			ReplyToCommand(client, "[SM] Stopped shifting.");
 		}
 	}
 }
@@ -270,7 +252,7 @@ void ent_fire(int client, char[] target, char[] action, char[] value) {
 	}
 	
 	if (StrEqual(action, "data", false) && num >= 1) {
-		PrintToChat(client, "[SM] %i entities printed to console!", num);
+		ReplyToCommand(client, "[SM] %i entities printed to console!", num);
 	}
 	iCounter = 0;
 }
@@ -279,7 +261,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 	iCounter++;
 	if (itarget <= 0 || !IsValidEntity(itarget)) {
 		if (iCounter == 1)
-			PrintToChat(client, "[SM] Invalid target!");
+			ReplyToCommand(client, "[SM] Invalid target!");
 	}
 	else if (StrEqual(action, "data", false)) {
 		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
@@ -311,7 +293,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		if (StrEqual(ename, "player")) {
 			if (StrEqual(value, "")) {
 				if (iCounter == 1)
-					PrintToChat(client, "[SM] removeslot <value>");
+					ReplyToCommand(client, "[SM] removeslot <value>");
 			}
 			else {
 				int ivalue = StringToInt(value);
@@ -320,7 +302,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		}
 		else {
 			if (iCounter == 1)
-				PrintToChat(client, "[SM] Target must be a player!");
+				ReplyToCommand(client, "[SM] Target must be a player!");
 		}
 	}
 	else if (StrEqual(action, "stun", false)) {
@@ -328,7 +310,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		if (StrEqual(ename, "player")) {
 			if (StrEqual(value, "")) {
 				if (iCounter == 1)
-					PrintToChat(client, "[SM] stun <value>");
+					ReplyToCommand(client, "[SM] stun <value>");
 			}
 			else {
 				float fvalue = StringToFloat(value);
@@ -337,13 +319,13 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		}
 		else {
 			if (iCounter == 1)
-				PrintToChat(client, "[SM] Target must be a player!");
+				ReplyToCommand(client, "[SM] Target must be a player!");
 		}
 	}
 	else if (StrEqual(action, "setname", false)) {
 		if (StrEqual(value, "")) {
 			if (iCounter == 1)
-				PrintToChat(client, "[SM] setname <name>");
+				ReplyToCommand(client, "[SM] setname <name>");
 		}
 		else {
 			char newvalue[128]; Format(newvalue, sizeof(newvalue), "targetname %s", value);
@@ -363,7 +345,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 	else if (StrEqual(action, "addorg", false)) {
 		if (StrEqual(value, "")) {
 			if (iCounter == 1)
-				PrintToChat(client, "[SM] addorg <x> <y> <z>");
+				ReplyToCommand(client, "[SM] addorg <x> <y> <z>");
 		}
 		else {
 			float entorg[3]; GetEntPropVector(itarget, Prop_Data, "m_vecOrigin", entorg);
@@ -377,7 +359,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 	else if (StrEqual(action, "addang", false)) {
 		if (StrEqual(value, "")) {
 			if (iCounter == 1)
-				PrintToChat(client, "[SM] addang <pitch> <yaw> <roll>");
+				ReplyToCommand(client, "[SM] addang <pitch> <yaw> <roll>");
 		}
 		else {
 			float entang[3]; GetEntPropVector(itarget, Prop_Data, "m_angRotation", entang);
@@ -391,7 +373,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 	else if (StrEqual(action, "setorg", false)) {
 		if (StrEqual(value, "")) {
 			if (iCounter == 1)
-				PrintToChat(client, "[SM] setorg <x> <y> <z>");
+				ReplyToCommand(client, "[SM] setorg <x> <y> <z>");
 		}
 		else {
 			float entorg[3]; char num[32][6];
@@ -405,7 +387,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 	else if (StrEqual(action, "setang", false)) {
 		if (StrEqual(value, "")) {
 			if (iCounter == 1)
-				PrintToChat(client, "[SM] setang <pitch> <yaw> <roll>");
+				ReplyToCommand(client, "[SM] setang <pitch> <yaw> <roll>");
 		}
 		else {
 			float entang[3]; char num[32][6];
@@ -422,7 +404,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 			if (StrEqual(ename, "prop_dynamic") || StrEqual(ename, "prop_physics") || StrEqual(ename, "prop_static")) {
 				if (StrEqual(value, "")) {
 					if (iCounter == 1)
-						PrintToChat(client, "[SM] copy <x> <y> <z> <pitch> <yaw> <roll>");
+						ReplyToCommand(client, "[SM] copy <x> <y> <z> <pitch> <yaw> <roll>");
 				}
 				else {
 					char model[512]; GetEntPropString(itarget, Prop_Data, "m_ModelName", model, sizeof(model));
@@ -453,12 +435,12 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 			}
 			else {
 				if (iCounter == 1)
-					PrintToChat(client, "[SM] Target must be a prop!");
+					ReplyToCommand(client, "[SM] Target must be a prop!");
 			}
 		}
 		else {
 			if (iCounter == 1)
-				PrintToChat(client, "[SM] Only one target allowed!");
+				ReplyToCommand(client, "[SM] Only one target allowed!");
 		}
 	}
 	else if (StrEqual(action, "class", false)) {
@@ -485,7 +467,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		}
 		else {
 			if (iCounter == 1)
-				PrintToChat(client, "[SM] Target must be a player!");
+				ReplyToCommand(client, "[SM] Target must be a player!");
 		}
 	}
 	else if (StrEqual(action, "setheadscale", false)) {
@@ -493,7 +475,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		if (StrEqual(ename, "player")) {
 			if (StrEqual(value, "")) {
 				if (iCounter == 1)
-					PrintToChat(client, "[SM] setheadscale <value>");
+					ReplyToCommand(client, "[SM] setheadscale <value>");
 			}
 			else {
 				fHeadScale[itarget] = StringToFloat(value);
@@ -502,7 +484,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		}
 		else {
 			if (iCounter == 1)
-				PrintToChat(client, "[SM] Target must be a player!");
+				ReplyToCommand(client, "[SM] Target must be a player!");
 		}
 	}
 	else if (StrEqual(action, "settorsoscale", false)) {
@@ -510,7 +492,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		if (StrEqual(ename, "player")) {
 			if (StrEqual(value, "")) {
 				if (iCounter == 1)
-					PrintToChat(client, "[SM] settorsoscale <value>");
+					ReplyToCommand(client, "[SM] settorsoscale <value>");
 			}
 			else {
 				fTorsoScale[itarget] = StringToFloat(value);
@@ -519,7 +501,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		}
 		else {
 			if (iCounter == 1)
-				PrintToChat(client, "[SM] Target must be a player!");
+				ReplyToCommand(client, "[SM] Target must be a player!");
 		}
 	}
 	else if (StrEqual(action, "sethandscale", false)) {
@@ -527,7 +509,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		if (StrEqual(ename, "player")) {
 			if (StrEqual(value, "")) {
 				if (iCounter == 1)
-					PrintToChat(client, "[SM] sethandscale <value>");
+					ReplyToCommand(client, "[SM] sethandscale <value>");
 			}
 			else {
 				fHandScale[itarget] = StringToFloat(value);
@@ -536,7 +518,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		}
 		else {
 			if (iCounter == 1)
-				PrintToChat(client, "[SM] Target must be a player!");
+				ReplyToCommand(client, "[SM] Target must be a player!");
 		}
 	}
 	else if (StrEqual(action, "resetscale", false)) {
@@ -553,7 +535,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		}
 		else {
 			if (iCounter == 1)
-				PrintToChat(client, "[SM] Target must be a player!");
+				ReplyToCommand(client, "[SM] Target must be a player!");
 		}
 	}
 	else if (StrEqual(action, "fp", false) || StrEqual(action, "firstperson", false)) {
@@ -565,7 +547,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		}
 		else {
 			if (iCounter == 1)
-				PrintToChat(client, "[SM] Target must be a player!");
+				ReplyToCommand(client, "[SM] Target must be a player!");
 		}
 	}
 	else if (StrEqual(action, "tp", false) || StrEqual(action, "thirdperson", false)) {
@@ -577,51 +559,43 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		}
 		else {
 			if (iCounter == 1)
-				PrintToChat(client, "[SM] Target must be a player!");
+				ReplyToCommand(client, "[SM] Target must be a player!");
 		}
 	}
 	else if (StrEqual(action, "teleport", false)) {
-		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
-		if (StrEqual(ename, "player")) {
-			if (StrEqual(value, "!picker", false)) {
-				int newtarget = GetClientAimTarget(client, false);
+		if (StrEqual(value, "!picker", false)) {
+			int newtarget = GetClientAimTarget(client, false);
+			float entorg[3]; GetEntPropVector(newtarget, Prop_Data, "m_vecAbsOrigin", entorg);
+			TeleportEntity(itarget, entorg, NULL_VECTOR, NULL_VECTOR);
+		}
+		else if (StrEqual(value, "!self", false)) {
+			int newtarget = client;
+			float entorg[3]; GetEntPropVector(newtarget, Prop_Data, "m_vecAbsOrigin", entorg);
+			TeleportEntity(itarget, entorg, NULL_VECTOR, NULL_VECTOR);
+		}
+		else if (StrContains(value, "@", false) == 0) {
+			char tvalue[256];
+			strcopy(tvalue, 64, value[1]);
+			int newtarget = FindTarget(client, tvalue, false, false);
+			if (newtarget != -1) {
 				float entorg[3]; GetEntPropVector(newtarget, Prop_Data, "m_vecAbsOrigin", entorg);
 				TeleportEntity(itarget, entorg, NULL_VECTOR, NULL_VECTOR);
 			}
-			else if (StrEqual(value, "!self", false)) {
-				int newtarget = client;
-				float entorg[3]; GetEntPropVector(newtarget, Prop_Data, "m_vecAbsOrigin", entorg);
-				TeleportEntity(itarget, entorg, NULL_VECTOR, NULL_VECTOR);
-			}
-			else if (StrContains(value, "@", false) == 0) {
-				char tvalue[256];
-				strcopy(tvalue, 64, value[1]);
-				int newtarget = FindTarget(client, tvalue, false, false);
-				if (newtarget != -1) {
-					float entorg[3]; GetEntPropVector(newtarget, Prop_Data, "m_vecAbsOrigin", entorg);
-					TeleportEntity(itarget, entorg, NULL_VECTOR, NULL_VECTOR);
-				}
-			}
-			else if (StrContains(value, "*", false) == 0) {
-				char tvalue[256];
-				strcopy(tvalue, 64, value[1]);
-				int newtarget = StringToInt(tvalue);
-				float entorg[3]; GetEntPropVector(newtarget, Prop_Data, "m_vecAbsOrigin", entorg);
-				TeleportEntity(itarget, entorg, NULL_VECTOR, NULL_VECTOR);
-			}
-			else if (StrEqual(value, "")) {
-				if (iCounter == 1)
-					PrintToChat(client, "[SM] teleport <target>");
-			}
-			else {
-				if (iCounter == 1)
-					PrintToChat(client, "[SM] Target invalid!");
-			}
-			
+		}
+		else if (StrContains(value, "*", false) == 0) {
+			char tvalue[256];
+			strcopy(tvalue, 64, value[1]);
+			int newtarget = StringToInt(tvalue);
+			float entorg[3]; GetEntPropVector(newtarget, Prop_Data, "m_vecAbsOrigin", entorg);
+			TeleportEntity(itarget, entorg, NULL_VECTOR, NULL_VECTOR);
+		}
+		else if (StrEqual(value, "")) {
+			if (iCounter == 1)
+				ReplyToCommand(client, "[SM] teleport <target>");
 		}
 		else {
 			if (iCounter == 1)
-				PrintToChat(client, "[SM] Target must be a player!");
+				ReplyToCommand(client, "[SM] Target invalid!");
 		}
 	}
 	else if (StrEqual(action, "addcond", false)) {
@@ -629,7 +603,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		if (StrEqual(ename, "player")) {
 			if (StrEqual(value, "")) {
 				if (iCounter == 1)
-					PrintToChat(client, "[SM] addcond <condition>");
+					ReplyToCommand(client, "[SM] addcond <condition>");
 			}
 			else {
 				int condition = StringToInt(value);
@@ -639,7 +613,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		}
 		else {
 			if (iCounter == 1)
-				PrintToChat(client, "[SM] Target must be a player!");
+				ReplyToCommand(client, "[SM] Target must be a player!");
 		}
 	}
 	else if (StrEqual(action, "removecond", false)) {
@@ -647,7 +621,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		if (StrEqual(ename, "player")) {
 			if (StrEqual(value, "")) {
 				if (iCounter == 1)
-					PrintToChat(client, "[SM] removecond <condition>");
+					ReplyToCommand(client, "[SM] removecond <condition>");
 			}
 			else {
 				int condition = StringToInt(value);
@@ -656,7 +630,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 		}
 		else {
 			if (iCounter == 1)
-				PrintToChat(client, "[SM] Target must be a player!");
+				ReplyToCommand(client, "[SM] Target must be a player!");
 		}
 	}
 	else if (StrEqual(action, "pitch", false)) {
@@ -665,18 +639,18 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 			if (StrEqual(value, "")) {
 				iVoicePitch[itarget] = 100;
 				if (iCounter == 1)
-					PrintToChat(client, "[SM] your pitch has been reset");
+					ReplyToCommand(client, "[SM] your pitch has been reset");
 			}
 			else {
 				iVoicePitch[itarget] = StringToInt(value);
 				if (iCounter == 1)
-					PrintToChat(client, "[SM] pitch changed to %s", value);
+					ReplyToCommand(client, "[SM] pitch changed to %s", value);
 			}
 			
 		}
 		else {
 			if (iCounter == 1)
-				PrintToChat(client, "[SM] Target must be a player!");
+				ReplyToCommand(client, "[SM] Target must be a player!");
 		}
 	}
 	else if (StrEqual(action, "color", false)) {
@@ -695,47 +669,47 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 	else if (StrContains(action, "m_", false) == 0) {
 		if (multiple == false) {
 			PropFieldType type;
-			int info = FindDataMapInfo(client, action, type);
+			int info = FindDataMapInfo(itarget, action, type);
 			if (info != -1) {
 				if (StrEqual(value, "")) {
 					if (type == PropField_Integer) {
 						int data = GetEntProp(itarget, Prop_Data, action);
-						PrintToChat(client, "\x03%i", data);
+						ReplyToCommand(client, "\x03%i", data);
 					}
 					else if (type == PropField_Float) {
 						float data = GetEntPropFloat(itarget, Prop_Data, action);
-						PrintToChat(client, "\x03%.2f", data);
+						ReplyToCommand(client, "\x03%.2f", data);
 					}
-					else if (type == PropField_String) {
+					else if (type == PropField_String || type == PropField_String_T) {
 						char buffer[256];
 						GetEntPropString(itarget, Prop_Data, action, buffer, sizeof(buffer));
-						PrintToChat(client, "\x03%s", buffer);
+						ReplyToCommand(client, "\x03%s", buffer);
 					}
 					else if (type == PropField_Vector) {
 						float vector[3];
 						GetEntPropVector(itarget, Prop_Data, action, vector);
-						PrintToChat(client, "\x03%.0f %.0f %.0f", vector[0], vector[1], vector[2]);
+						ReplyToCommand(client, "\x03%.0f %.0f %.0f", vector[0], vector[1], vector[2]);
 					}
 					else if (type == PropField_Entity) {
 						int data = GetEntPropEnt(itarget, Prop_Data, action);
-						PrintToChat(client, "\x03%i", data);
+						ReplyToCommand(client, "\x03%i", data);
 					}
 					else {
-						PrintToChat(client, "[SM] Type not supported!");
+						ReplyToCommand(client, "[SM] Type not supported!");
 					}
 				}
 				else {
 					if (type == PropField_Integer) {
 						SetEntProp(itarget, Prop_Data, action, StringToInt(value));
-						PrintToChat(client, "[SM] Set %s to %s", action, value);
+						ReplyToCommand(client, "[SM] Set %s to %s", action, value);
 					}
 					else if (type == PropField_Float) {
 						SetEntPropFloat(itarget, Prop_Data, action, StringToFloat(value));
-						PrintToChat(client, "[SM] Set %s to %s", action, value);
+						ReplyToCommand(client, "[SM] Set %s to %s", action, value);
 					}
-					else if (type == PropField_String) {
+					else if (type == PropField_String || type == PropField_String_T) {
 						SetEntPropString(itarget, Prop_Data, action, value);
-						PrintToChat(client, "[SM] Set %s to %s", action, value);
+						ReplyToCommand(client, "[SM] Set %s to %s", action, value);
 					}
 					else if (type == PropField_Vector) {
 						float vector[3]; char num[64][6];
@@ -744,24 +718,24 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 						vector[1] = StringToFloat(num[1]);
 						vector[2] = StringToFloat(num[2]);
 						SetEntPropVector(itarget, Prop_Data, action, vector);
-						PrintToChat(client, "[SM] Set %s to %.0f %.0f %.0f", action, vector[0], vector[1], vector[2]);
+						ReplyToCommand(client, "[SM] Set %s to %.0f %.0f %.0f", action, vector[0], vector[1], vector[2]);
 					}
 					else if (type == PropField_Entity) {
 						SetEntPropEnt(itarget, Prop_Data, action, StringToInt(value));
-						PrintToChat(client, "[SM] Set %s to %s", action, value);
+						ReplyToCommand(client, "[SM] Set %s to %s", action, value);
 					}
 					else {
-						PrintToChat(client, "[SM] Type not supported!");
+						ReplyToCommand(client, "[SM] Type not supported!");
 					}
 				}
 			}
 			else {
-				PrintToChat(client, "[SM] %s not a datamap!", action);
+				ReplyToCommand(client, "[SM] %s not a datamap for target!", action);
 			}
 		}
 		else {
 			if (iCounter == 1)
-				PrintToChat(client, "[SM] Only one target allowed!");
+				ReplyToCommand(client, "[SM] Only one target allowed!");
 		}
 	}
 	else {
@@ -776,14 +750,14 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 
 void ent_trace(int client, float startpos[3], float startang[3], float endpos[3], int entity, char[] action, char[] value) {
 	if (StrEqual(action, "data", false)) {
-		PrintToChat(client, "StartPos: %.0f %.0f %.0f", startpos[0], startpos[1], startpos[2]);
-		PrintToChat(client, "StartAng: %.0f %.0f %.0f", startang[0], startang[1], startang[2]);
-		PrintToChat(client, "EndPos: %.0f %.0f %.0f", endpos[0], endpos[1], endpos[2]);
-		PrintToChat(client, "Hit: %i", entity);
+		ReplyToCommand(client, "StartPos: %.0f %.0f %.0f", startpos[0], startpos[1], startpos[2]);
+		ReplyToCommand(client, "StartAng: %.0f %.0f %.0f", startang[0], startang[1], startang[2]);
+		ReplyToCommand(client, "EndPos: %.0f %.0f %.0f", endpos[0], endpos[1], endpos[2]);
+		ReplyToCommand(client, "Hit: %i", entity);
 	}
 	else if (StrEqual(action, "prop", false)) {
 		if (StrEqual(value, "")) {
-			PrintToChat(client, "[SM] prop <modelpath>");
+			ReplyToCommand(client, "[SM] prop <modelpath>");
 		}
 		else {
 			PrecacheModel(value);
@@ -801,59 +775,59 @@ void ent_trace(int client, float startpos[3], float startang[3], float endpos[3]
 	}
 	else if (StrEqual(action, "create", false)) {
 		if (StrEqual(value, "")) {
-			PrintToChat(client, "[SM] create <entity>");
+			ReplyToCommand(client, "[SM] create <entity>");
 		}
 		else {
 			if (StrEqual(value, "0") || StrEqual(value, "-1")) {
-				PrintToChat(client, "[SM] Cannot create that entity!");
+				ReplyToCommand(client, "[SM] Cannot create that entity!");
 			}
 			else if (iEntity[client] == 0) {
 				iEntity[client] = CreateEntityByName(value);
 				if (IsValidEntity(iEntity[client])) {
-					PrintToChat(client, "[SM] Entity %i > %s created.", iEntity[client], value);
+					ReplyToCommand(client, "[SM] Entity %i > %s created.", iEntity[client], value);
 				}
 				else {
-					PrintToChat(client, "[SM] Invalid entity!");
+					ReplyToCommand(client, "[SM] Invalid entity!");
 					iEntity[client] = 0;
 				}
 			}
 			else {
-				PrintToChat(client, "[SM] Please delete or spawn your previous entity first. (%i)", iEntity[client]);
+				ReplyToCommand(client, "[SM] Please delete or spawn your previous entity first. (%i)", iEntity[client]);
 			}
 		}
 	}
 	else if (StrEqual(action, "delete", false)) {
 		if (iEntity[client] != 0) {
 			char ename[128]; GetEntityClassname(iEntity[client], ename, sizeof(ename));
-			PrintToChat(client, "[SM] Entity %i > %s deleted", iEntity[client], ename);
+			ReplyToCommand(client, "[SM] Entity %i > %s deleted", iEntity[client], ename);
 			RemoveEdict(iEntity[client]);
 			iEntity[client] = 0;
 		}
 		else {
-			PrintToChat(client, "[SM] No entity created yet.", iEntity[client]);
+			ReplyToCommand(client, "[SM] No entity created yet.", iEntity[client]);
 		}
 	}
 	else if (StrEqual(action, "value", false)) {
 		if (StrEqual(value, "")) {
-			PrintToChat(client, "[SM] value <key> <value>");
+			ReplyToCommand(client, "[SM] value <key> <value>");
 		}
 		else {
 			if (iEntity[client] != 0) {
 				char ename[128]; GetEntityClassname(iEntity[client], ename, sizeof(ename));
 				char part[32][6]; ExplodeString(value, " ", part, 2, sizeof(part), true);
 				DispatchKeyValue(iEntity[client], part[0], part[1]);
-				PrintToChat(client, "[SM] Key:\"%s\" Value:\"%s\"", part[0], part[1]);
-				PrintToChat(client, "added to entity %i > %s", iEntity[client], ename);
+				ReplyToCommand(client, "[SM] Key:\"%s\" Value:\"%s\"", part[0], part[1]);
+				ReplyToCommand(client, "added to entity %i > %s", iEntity[client], ename);
 			}
 			else {
-				PrintToChat(client, "[SM] No entity created yet.", iEntity[client]);
+				ReplyToCommand(client, "[SM] No entity created yet.", iEntity[client]);
 			}
 		}
 	}
 	else if (StrEqual(action, "spawn", false)) {
 		if (iEntity[client] != 0) {
 			char ename[128]; GetEntityClassname(iEntity[client], ename, sizeof(ename));
-			PrintToChat(client, "[SM] Entity %i > %s spawned.", iEntity[client], ename);
+			ReplyToCommand(client, "[SM] Entity %i > %s spawned.", iEntity[client], ename);
 			DispatchSpawn(iEntity[client]);
 			ActivateEntity(iEntity[client]);
 			float propang[3];
@@ -862,17 +836,17 @@ void ent_trace(int client, float startpos[3], float startang[3], float endpos[3]
 			iEntity[client] = 0;
 		}
 		else {
-			PrintToChat(client, "[SM] No entity created yet.", iEntity[client]);
+			ReplyToCommand(client, "[SM] No entity created yet.", iEntity[client]);
 		}
 	}
 	else if (StrEqual(action, "copy", false)) {
 		char ename[256]; GetEntityClassname(entity, ename, sizeof(ename));
 		if (StrEqual(ename, "prop_dynamic")) {
 			iCopy[client] = entity;
-			PrintToChat(client, "[SM] %i > %s copied.", iCopy[client], ename);
+			ReplyToCommand(client, "[SM] %i > %s copied.", iCopy[client], ename);
 		}
 		else {
-			PrintToChat(client, "[SM] Target must be a prop!");
+			ReplyToCommand(client, "[SM] Target must be a prop!");
 		}
 	}
 	else if (StrEqual(action, "paste", false)) {
@@ -897,7 +871,7 @@ void ent_trace(int client, float startpos[3], float startang[3], float endpos[3]
 			SetEntityRenderFx(prop, GetEntityRenderFx(iCopy[client]));
 		}
 		else {
-			PrintToChat(client, "[SM] No entity copied yet!");
+			ReplyToCommand(client, "[SM] No entity copied yet!");
 		}
 	}
 	else if (StrEqual(action, "shift", false)) {
@@ -906,17 +880,17 @@ void ent_trace(int client, float startpos[3], float startang[3], float endpos[3]
 				bShift[client] = true;
 				iShift[client] = entity;
 				iShiftMode[client] = StringToInt(value);
-				PrintToChat(client, "[SM] Started shifting %i", iShift[client]);
+				ReplyToCommand(client, "[SM] Started shifting %i", iShift[client]);
 			}
 			else {
-				PrintToChat(client, "[SM] Invalid entity!");
+				ReplyToCommand(client, "[SM] Invalid entity!");
 			}
 		}
 		else {
 			bShift[client] = false;
 			iShift[client] = 0;
 			iShiftMode[client] = 0;
-			PrintToChat(client, "[SM] Stopped shifting.");
+			ReplyToCommand(client, "[SM] Stopped shifting.");
 		}
 	}
 } 
