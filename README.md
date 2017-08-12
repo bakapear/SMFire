@@ -45,6 +45,7 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - `pitch <0-255>`
 - `color <R+G+B+A> [0-255]`
 - `setclip <value>`
+- {tf_weapon equipping}
 - {all other ent_fire actions}
 #### ONLY SPECIAL
 - `data *full`
@@ -60,6 +61,8 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 ## DATAMAP MANIPULATION
 `sm_fire <target> <datamap> <*any>`
 
+Gives the ability to check or change any datamap of target in-game.
+
 [List of Datamaps](https://github.com/powerlord/tf2-data/blob/master/datamaps.txt)
 
 Examples:
@@ -72,3 +75,16 @@ Examples:
 For instance, you could set the clipsize of your weapon like this:
 1. `sm_fire !self h_ActiveWeapon` - gives you your active weapon entity index, lets say it's 73.
 2. `sm_fire *73 m_iClip1 50` - changes that weapons clipsize to 50! (not reloadable tho)
+
+## TF_WEAPON EQUIPPING
+`sm_fire <target> <tfweapon> <index>`
+
+Lets you equip any tf_weapon which will replace your current weapon holding. Works with multiple players!
+
+[List of Indexes](https://wiki.alliedmods.net/Team_fortress_2_item_definition_indexes)
+
+Examples:
+- `tf_weapon_rocketlauncher_directhit 127` gives directhit
+- `tf_weapon_knife 638` gives sharp dresser
+- `tf_weapon_handgun_scout_primary 457` gives you a weird one-shot Force-A-Nature?
+- `tf_weapon_pep_brawler_blaster 294` gives you lugermorph scattergun
