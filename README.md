@@ -44,6 +44,7 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - `removecond <value>`
 - `pitch <0-255>`
 - `color <R+G+B+A> [0-255]`
+- `setclip <value>`
 - {all other ent_fire actions}
 #### ONLY SPECIAL
 - `data *full`
