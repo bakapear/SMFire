@@ -2,6 +2,9 @@
 `sm_fire <target> <action> <value>`
 
 At first the plugin might seem a bit complicated, because it doesn't show a list of commands for you. It's just one command with many features! So here I'll list all features currently available in SMFire.
+
+[Preview Video](https://www.youtube.com/watch?v=EV41hXWuYRU)
+
 ## TARGETS
 #### SINGLE
 - !self
@@ -24,7 +27,7 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - `teleport <target>`
 - {datamap manipulation}
 #### SINGLE + MULTIPLE
-- `data *full`
+- `data (full)`
 - `removeslot <0-5>`
 - `stun <duration>`
 - `setname <name>`
@@ -48,7 +51,7 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - {tf_weapon equipping}
 - {all other ent_fire actions}
 #### ONLY SPECIAL
-- `data *full`
+- `data (full)`
 - `prop <modelpath>`
 - `create <classname>`
 - `value <key> <value>`
@@ -56,7 +59,7 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - `delete`
 - `copy`
 - `paste`
-- `shift *0-360`
+- `shift (value)`
 
 ## DATAMAP MANIPULATION
 `sm_fire <target> <datamap> <*any>`
@@ -79,7 +82,7 @@ For instance, you could set the clipsize of your weapon like this:
 ## TF_WEAPON EQUIPPING
 `sm_fire <target> <tfweapon> <index>`
 
-Lets you equip any tf_weapon which will replace your current weapon holding. Works with multiple players!
+Lets you equip any tf_weapon with any index. Works with multiple players!
 
 [List of Indexes](https://wiki.alliedmods.net/Team_fortress_2_item_definition_indexes)
 
