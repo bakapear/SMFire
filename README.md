@@ -2,6 +2,9 @@
 `sm_fire <target> <action> <value>`
 
 At first the plugin might seem a bit complicated, because it doesn't show a list of commands for you. It's just one command with many features! So here I'll list all features currently available in SMFire.
+
+[Preview Video](https://www.youtube.com/watch?v=EV41hXWuYRU)
+
 ## TARGETS
 #### SINGLE
 - !self
