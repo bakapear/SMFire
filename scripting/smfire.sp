@@ -4,6 +4,10 @@
 #include <sourcemod>
 #include <tf2_stocks>
 
+#define MAX_BUTTONS 25
+#define IN_SPEED	(1 << 17)
+
+int lastbuttons[MAXPLAYERS + 1];
 int iCounter;
 int iCopy[MAXPLAYERS + 1];
 int iEntity[MAXPLAYERS + 1];
@@ -16,12 +20,15 @@ bool bShift[MAXPLAYERS + 1];
 int iShiftMode[MAXPLAYERS + 1];
 int iShift[MAXPLAYERS + 1];
 int iWeapon[MAXPLAYERS + 1];
+int iMove[MAXPLAYERS + 1];
+int iMoveTarget[MAXPLAYERS + 1];
+bool bMove[MAXPLAYERS + 1];
 
 public Plugin myinfo =  {
 	name = "SM_Fire", 
 	author = "pear", 
 	description = "entity debugging", 
-	version = "1.3.3", 
+	version = "1.4", 
 	url = ""
 };
 
@@ -97,6 +104,31 @@ public Action hook_sound(int clients[64], int &numclients, char sample[PLATFORM_
 }
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float velocity[3], float angles[3], int &weapon) {
+	for (int i = 0; i < MAX_BUTTONS; i++) {
+		int button = (1 << i);
+		if ((buttons & button)) {
+			if (!(lastbuttons[client] & button)) {
+				OnButtonPress(client, button);
+			}
+		}
+	}
+	lastbuttons[client] = buttons;
+	if (bMove[client] == true) {
+		int aim = GetAimEntity(client);
+		if (aim > 0) {
+			char tname[128]; GetEntPropString(aim, Prop_Data, "m_iName", tname, sizeof(tname));
+			char buffer[128]; FormatEx(buffer, sizeof(buffer), "enttemp_%i", GetClientUserId(client));
+			if (StrContains(tname, buffer) == 0) {
+				if (iMoveTarget[client] != aim) {
+					if (IsValidEntity(iMoveTarget[client])) {
+						SetEntityRenderColor(iMoveTarget[client], 255, 255, 255, 0);
+					}
+					iMoveTarget[client] = aim;
+					SetEntityRenderColor(iMoveTarget[client], 255, 255, 255, 128);
+				}
+			}
+		}
+	}
 	if (bShift[client] == true && iShift[client] != 0 && IsValidEntity(iShift[client])) {
 		if (IsPlayerAlive(client)) {
 			float playerang[3]; GetClientEyeAngles(client, playerang);
@@ -956,6 +988,101 @@ void ent_trace(int client, float startpos[3], float startang[3], float endpos[3]
 			iShift[client] = 0;
 			iShiftMode[client] = 0;
 			ReplyToCommand(client, "[SM] Stopped shifting.");
+		}
+	}
+	else if (StrEqual(action, "move", false)) {
+		if (bMove[client] == false) {
+			iMove[client] = GetAimEntity(client);
+			if (iMove[client] > 0) {
+				CreateTempEnts(client, iMove[client]);
+				bMove[client] = true;
+			}
+			else {
+				ReplyToCommand(client, "[SM] Invalid entity!");
+			}
+		}
+		else {
+			DeleteTempEnts(client);
+			bMove[client] = false;
+		}
+	}
+}
+
+int GetAimEntity(int client) {
+	float org[3]; GetClientEyePosition(client, org);
+	float ang[3]; GetClientEyeAngles(client, ang);
+	Handle trace = TR_TraceRayFilterEx(org, ang, MASK_SHOT, RayType_Infinite, filter_player, client);
+	int ent = TR_GetEntityIndex(trace);
+	CloseHandle(trace);
+	return ent;
+}
+
+int CreatePropRelative(int entity, float offset[3], char[] name) {
+	float org[3]; GetEntPropVector(entity, Prop_Data, "m_vecOrigin", org);
+	float ang[3]; GetEntPropVector(entity, Prop_Data, "m_angRotation", ang);
+	char model[256]; GetEntPropString(entity, Prop_Data, "m_ModelName", model, sizeof(model));
+	PrecacheModel(model);
+	org[0] += offset[0];
+	org[1] += offset[1];
+	org[2] += offset[2];
+	int prop = CreateEntityByName("prop_dynamic");
+	DispatchKeyValue(prop, "model", model);
+	DispatchKeyValue(prop, "targetname", name);
+	DispatchKeyValue(prop, "solid", "4");
+	DispatchSpawn(prop);
+	TeleportEntity(prop, org, ang, NULL_VECTOR);
+	SetEntityRenderColor(prop, 255, 255, 255, 0);
+	SetEntityRenderMode(prop, RENDER_TRANSALPHAADD);
+	return prop;
+}
+
+void CreateTempEnts(int client, int entity) {
+	float vector1[3]; GetEntPropVector(entity, Prop_Data, "m_vecMins", vector1);
+	float vector2[3]; GetEntPropVector(entity, Prop_Data, "m_vecMaxs", vector2);
+	float vector3[3];
+	
+	if (vector1[0] < 0) { vector1[0] /= (-1); }
+	if (vector1[1] < 0) { vector1[1] /= (-1); }
+	if (vector1[2] < 0) { vector1[2] /= (-1); }
+	
+	char buffer[128]; FormatEx(buffer, sizeof(buffer), "enttemp_%i", GetClientUserId(client));
+	vector3[0] = vector1[0] + vector2[0];
+	CreatePropRelative(entity, vector3, buffer);
+	vector3[0] = (vector1[0] + vector2[0]) / (-1);
+	CreatePropRelative(entity, vector3, buffer);
+	vector3[0] = 0.0;
+	vector3[1] = vector1[1] + vector2[1];
+	CreatePropRelative(entity, vector3, buffer);
+	vector3[1] = (vector1[1] + vector2[1]) / (-1);
+	CreatePropRelative(entity, vector3, buffer);
+	vector3[1] = 0.0;
+	vector3[2] = vector1[2] + vector2[2];
+	CreatePropRelative(entity, vector3, buffer);
+	vector3[2] = (vector1[2] + vector2[2]) / (-1);
+	CreatePropRelative(entity, vector3, buffer);
+}
+
+void DeleteTempEnts(int client) {
+	for (int e = 1; e <= GetMaxEntities(); e++) {
+		if (IsValidEntity(e)) {
+			char tname[128]; GetEntPropString(e, Prop_Data, "m_iName", tname, sizeof(tname));
+			char buffer[128]; FormatEx(buffer, sizeof(buffer), "enttemp_%i", GetClientUserId(client));
+			if (StrContains(tname, buffer) == 0) {
+				if (e != -1) {
+					RemoveEdict(e);
+				}
+			}
+		}
+	}
+}
+
+void OnButtonPress(int client, int button) {
+	if (button == IN_SPEED && bMove[client] == true) {
+		if (iMoveTarget[client] > 0 && IsValidEntity(iMoveTarget[client])) {
+			float org[3]; GetEntPropVector(iMoveTarget[client], Prop_Data, "m_vecOrigin", org);
+			TeleportEntity(iMove[client], org, NULL_VECTOR, NULL_VECTOR);
+			DeleteTempEnts(client);
+			CreateTempEnts(client, iMove[client]);
 		}
 	}
 } 
