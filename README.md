@@ -63,7 +63,7 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - `copy`
 - `paste`
 - `shift (value)`
-- `move`
+- `move [bind +speed]`
 
 ## DATAMAP MANIPULATION
 `sm_fire <target> <datamap> <*any>`
