@@ -1212,9 +1212,10 @@ void WriteToFile(int client, char[] path, char[] filename) {
 						float entang[3]; GetEntPropVector(e, Prop_Data, "m_angRotation", entang);
 						int red, green, blue, alpha;
 						GetEntityRenderColor(e, red, green, blue, alpha);
+						char mapname[256]; GetCurrentMap(mapname, sizeof(mapname));
 						char string[512];
-						Format(string, sizeof(string), "%i|%s|%i|%i|%f|%f|%f|%f|%f|%f|%f|%i|%i|%i|%i", 
-							e, model, parent, solid, scale, entorg[0], entorg[1], entorg[2], entang[0], entang[1], entang[2], red, green, blue, alpha);
+						Format(string, sizeof(string), "%s|%s|%i|%i|%f|%f|%f|%f|%f|%f|%f|%i|%i|%i|%i", 
+							mapname, model, parent, solid, scale, entorg[0], entorg[1], entorg[2], entang[0], entang[1], entang[2], red, green, blue, alpha);
 						WriteFileLine(filehandle, "%s", string);
 						num++;
 					}
