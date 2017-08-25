@@ -25,6 +25,9 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 #### SINGLE
 - `copy <x> <y> <z> <pitch> <yaw> <roll>`
 - `teleport <target>`
+- `saveprops <filename>`
+- `loadprops <filename>`
+- `deletefile <filename> (ignores target)`
 - {datamap manipulation}
 #### SINGLE + MULTIPLE
 - `data (full)`
