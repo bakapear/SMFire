@@ -30,7 +30,7 @@ public Plugin myinfo =  {
 	name = "SM_Fire", 
 	author = "pear", 
 	description = "entity debugging", 
-	version = "1.5", 
+	version = "1.5.2", 
 	url = ""
 };
 
@@ -1182,7 +1182,7 @@ void CreateFile(int client, char[] filename) {
 }
 
 void WriteToFile(int client, char[] path, char[] filename) {
-	int num;
+	int check;
 	for (int e = 1; e <= GetMaxEntities(); e++) {
 		if (IsValidEntity(e)) {
 			char cname[128]; GetEntityClassname(e, cname, sizeof(cname));
@@ -1190,12 +1190,13 @@ void WriteToFile(int client, char[] path, char[] filename) {
 			char buffer[128]; FormatEx(buffer, sizeof(buffer), "entprop_%i", GetClientUserId(client));
 			if (StrContains(tname, buffer) == 0) {
 				if (e != -1 && StrEqual(cname, "prop_dynamic")) {
-					num++;
+					check++;
 				}
 			}
 		}
 	}
-	if (num > 0) {
+	int num;
+	if (check > 0) {
 		Handle filehandle = OpenFile(path, "w");
 		for (int e = 1; e <= GetMaxEntities(); e++) {
 			if (IsValidEntity(e)) {
@@ -1240,14 +1241,24 @@ void ReadFromFile(int client, char[] filename) {
 		Handle filehandle = OpenFile(filepath, "r");
 		char line[512];
 		int num;
+		char realmap[256];
 		while (!IsEndOfFile(filehandle) && ReadFileLine(filehandle, line, sizeof(line))) {
 			char part[512][128];
 			ExplodeString(line, "|", part, 15, sizeof(part));
-			RecoverProp(client, part[1], StringToInt(part[2]), part[3], part[4], StringToFloat(part[5]), StringToFloat(part[6]), StringToFloat(part[7]), StringToFloat(part[8]), StringToFloat(part[9]), StringToFloat(part[10]), StringToInt(part[11]), StringToInt(part[12]), StringToInt(part[13]), StringToInt(part[14]));
+			char mapname[256]; GetCurrentMap(mapname, sizeof(mapname));
+			if (StrEqual(part[0], mapname)) {
+				RecoverProp(client, part[1], StringToInt(part[2]), part[3], part[4], StringToFloat(part[5]), StringToFloat(part[6]), StringToFloat(part[7]), StringToFloat(part[8]), StringToFloat(part[9]), StringToFloat(part[10]), StringToInt(part[11]), StringToInt(part[12]), StringToInt(part[13]), StringToInt(part[14]));
+			}
+			else {
+				strcopy(realmap, sizeof(realmap), part[0]);
+			}
 			num++;
 		}
 		if (num == 0) {
-			ReplyToCommand(client, "[SM] File %s is empty!", buffer);
+			ReplyToCommand(client, "[SM] File %s is empty", buffer);
+		}
+		else if (!StrEqual(realmap, "")) {
+			ReplyToCommand(client, "[SM] Wrong map! These were saved in %s.", realmap);
 		}
 		else {
 			ReplyToCommand(client, "[SM] Spawned %i saved props from %s", num, buffer);
