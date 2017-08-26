@@ -7,7 +7,7 @@
 
 #define MAX_BUTTONS 25
 #define IN_SPEED	(1 << 17)
-#define PROPSAVE_DIR "data/smfire"
+#define DATA_DIR "data/smfire"
 
 int lastbuttons[MAXPLAYERS + 1];
 int iCounter;
@@ -30,7 +30,7 @@ public Plugin myinfo =  {
 	name = "SM_Fire", 
 	author = "pear", 
 	description = "entity debugging", 
-	version = "1.5.5", 
+	version = "1.5.9", 
 	url = ""
 };
 
@@ -341,6 +341,9 @@ stock void ent_fire(int client, char[] target, char[] action, char[] value) {
 			int entity = TR_GetEntityIndex(trace);
 			ent_trace(client, playerorg, playerang, endpos, entity, action, value);
 		}
+	}
+	else if (StrEqual(target, "!file", false)) {
+		ent_file(client, action, value);
 	}
 	else if (StrContains(target, "@", false) == 0) {
 		strcopy(target, 64, target[1]);
@@ -852,12 +855,12 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 					ReplyToCommand(client, "[SM] saveprops <filename>");
 				}
 				else {
-					char dir[256]; BuildPath(Path_SM, dir, sizeof(dir), PROPSAVE_DIR);
+					char dir[256]; BuildPath(Path_SM, dir, sizeof(dir), DATA_DIR);
 					if (!DirExists(dir)) {
 						CreateDirectory(dir, 0);
 					}
 					char auth[256]; GetClientAuthId(itarget, AuthId_SteamID64, auth, sizeof(auth));
-					char filename[256]; FormatEx(filename, sizeof(filename), "%s/%s_%s.cfg", PROPSAVE_DIR, value, auth);
+					char filename[256]; FormatEx(filename, sizeof(filename), "%s/%s_%s.cfg", DATA_DIR, value, auth);
 					char filepath[256]; BuildPath(Path_SM, filepath, sizeof(filepath), filename);
 					int check;
 					for (int e = 1; e <= GetMaxEntities(); e++) {
@@ -925,7 +928,7 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 				}
 				else {
 					char auth[256]; GetClientAuthId(itarget, AuthId_SteamID64, auth, sizeof(auth));
-					char buffer[256]; FormatEx(buffer, sizeof(buffer), "%s/%s_%s.cfg", PROPSAVE_DIR, value, auth);
+					char buffer[256]; FormatEx(buffer, sizeof(buffer), "%s/%s_%s.cfg", DATA_DIR, value, auth);
 					char filepath[256]; BuildPath(Path_SM, filepath, sizeof(filepath), buffer);
 					if (!FileExists(filepath)) {
 						ReplyToCommand(client, "[SM] File %s doesn't exist!", buffer);
@@ -978,24 +981,6 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 		}
 		else {
 			ReplyToCommand(client, "[SM] Only one target allowed!");
-		}
-	}
-	else if (StrEqual(action, "deletefile", false)) {
-		if (multiple == false) {
-			if (StrEqual(value, "")) {
-				ReplyToCommand(client, "[SM] deletefile <filename>");
-			}
-			else {
-				char buffer[256]; FormatEx(buffer, sizeof(buffer), "%s/%s.cfg", PROPSAVE_DIR, value);
-				char filepath[256]; BuildPath(Path_SM, filepath, sizeof(filepath), buffer);
-				if (FileExists(filepath)) {
-					DeleteFile(filepath);
-					ReplyToCommand(client, "[SM] Deleted %s!", buffer);
-				}
-				else {
-					ReplyToCommand(client, "[SM] File %s doesn't exist!", buffer);
-				}
-			}
 		}
 	}
 	else if (StrContains(action, "m_", false) == 0) {
@@ -1294,3 +1279,22 @@ stock void ent_trace(int client, float startpos[3], float startang[3], float end
 		}
 	}
 }
+
+stock void ent_file(int client, char[] action, char[] value) {
+	if (StrEqual(action, "delete", false)) {
+		if (StrEqual(value, "")) {
+			ReplyToCommand(client, "[SM] delete <filename>");
+		}
+		else {
+			char buffer[256]; FormatEx(buffer, sizeof(buffer), "%s/%s.cfg", DATA_DIR, value);
+			char filepath[256]; BuildPath(Path_SM, filepath, sizeof(filepath), buffer);
+			if (FileExists(filepath)) {
+				DeleteFile(filepath);
+				ReplyToCommand(client, "[SM] Deleted %s!", buffer);
+			}
+			else {
+				ReplyToCommand(client, "[SM] File %s doesn't exist!", buffer);
+			}
+		}
+	}
+} 
