@@ -30,7 +30,7 @@ public Plugin myinfo =  {
 	name = "SM_Fire", 
 	author = "pear", 
 	description = "entity debugging", 
-	version = "1.5.4", 
+	version = "1.5.5", 
 	url = ""
 };
 
@@ -77,52 +77,11 @@ public void OnGameFrame() {
 	}
 }
 
-public void OnClientDisconnect_Post(int client) {
+public void OnClientDisconnect(int client) {
 	lastbuttons[client] = 0;
-	if (bMove[client]) {
+	if (bMove[client] == true) {
 		DeleteTempEnts(client);
 	}
-}
-
-public Action event_playerspawn(Handle event, char[] name, bool dontbroadcast) {
-	int client = GetClientOfUserId(GetEventInt(event, "userid"));
-	if (bThirdperson[client] == true) {
-		CreateTimer(0.1, spawn_thirdperson, client);
-	}
-}
-
-public Action spawn_thirdperson(Handle timer, any client) {
-	SetVariantInt(1);
-	AcceptEntityInput(client, "SetForcedTauntCam");
-}
-
-public bool filter_player(int entity, int mask, any data) {
-	if (entity == data) {
-		return false;
-	}
-	else {
-		return true;
-	}
-}
-
-public bool filter_multiple(int entity, int mask, any data) {
-	if (entity == data || entity == iShift[data]) {
-		return false;
-	}
-	else {
-		return true;
-	}
-}
-
-public Action hook_sound(int clients[64], int &numclients, char sample[PLATFORM_MAX_PATH], int &entity, int &channel, float &volume, int &level, int &pitch, int &flags) {
-	if (channel == SNDCHAN_VOICE && entity >= 1 && entity <= MaxClients) {
-		if (iVoicePitch[entity] != 100) {
-			pitch = iVoicePitch[entity];
-			flags |= SND_CHANGEPITCH;
-			return Plugin_Changed;
-		}
-	}
-	return Plugin_Continue;
 }
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float velocity[3], float angles[3], int &weapon) {
@@ -130,7 +89,14 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float veloc
 		int button = (1 << i);
 		if ((buttons & button)) {
 			if (!(lastbuttons[client] & button)) {
-				OnButtonPress(client, button);
+				if (button == IN_SPEED && bMove[client] == true) {
+					if (iMoveTarget[client] > 0 && IsValidEntity(iMoveTarget[client])) {
+						float org[3]; GetEntPropVector(iMoveTarget[client], Prop_Data, "m_vecOrigin", org);
+						TeleportEntity(iMove[client], org, NULL_VECTOR, NULL_VECTOR);
+						DeleteTempEnts(client);
+						CreateTempEnts(client, iMove[client]);
+					}
+				}
 			}
 		}
 	}
@@ -175,6 +141,117 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float veloc
 	}
 }
 
+public Action event_playerspawn(Handle event, char[] name, bool dontbroadcast) {
+	int client = GetClientOfUserId(GetEventInt(event, "userid"));
+	if (bThirdperson[client] == true) {
+		CreateTimer(0.1, spawn_thirdperson, client);
+	}
+}
+
+public Action spawn_thirdperson(Handle timer, any client) {
+	SetVariantInt(1);
+	AcceptEntityInput(client, "SetForcedTauntCam");
+}
+
+public Action hook_sound(int clients[64], int &numclients, char sample[PLATFORM_MAX_PATH], int &entity, int &channel, float &volume, int &level, int &pitch, int &flags) {
+	if (channel == SNDCHAN_VOICE && entity >= 1 && entity <= MaxClients) {
+		if (iVoicePitch[entity] != 100) {
+			pitch = iVoicePitch[entity];
+			flags |= SND_CHANGEPITCH;
+			return Plugin_Changed;
+		}
+	}
+	return Plugin_Continue;
+}
+
+public bool filter_player(int entity, int mask, any data) {
+	if (entity == data) {
+		return false;
+	}
+	else {
+		return true;
+	}
+}
+
+public bool filter_multiple(int entity, int mask, any data) {
+	if (entity == data || entity == iShift[data]) {
+		return false;
+	}
+	else {
+		return true;
+	}
+}
+
+int GetAimEntity(int client) {
+	float org[3]; GetClientEyePosition(client, org);
+	float ang[3]; GetClientEyeAngles(client, ang);
+	Handle trace = TR_TraceRayFilterEx(org, ang, MASK_SHOT, RayType_Infinite, filter_player, client);
+	int ent = TR_GetEntityIndex(trace);
+	CloseHandle(trace);
+	return ent;
+}
+
+int CreatePropRelative(int entity, float offset[3], char[] name) {
+	float org[3]; GetEntPropVector(entity, Prop_Data, "m_vecOrigin", org);
+	float ang[3]; GetEntPropVector(entity, Prop_Data, "m_angRotation", ang);
+	char model[256]; GetEntPropString(entity, Prop_Data, "m_ModelName", model, sizeof(model));
+	PrecacheModel(model);
+	org[0] += offset[0];
+	org[1] += offset[1];
+	org[2] += offset[2];
+	int prop = CreateEntityByName("prop_dynamic");
+	DispatchKeyValue(prop, "model", model);
+	DispatchKeyValue(prop, "targetname", name);
+	DispatchKeyValue(prop, "solid", "4");
+	DispatchSpawn(prop);
+	TeleportEntity(prop, org, ang, NULL_VECTOR);
+	SetEntityRenderColor(prop, 255, 255, 255, 0);
+	SetEntityRenderMode(prop, RENDER_TRANSALPHAADD);
+	return prop;
+}
+
+void CreateTempEnts(int client, int entity) {
+	float vector1[3]; GetEntPropVector(entity, Prop_Data, "m_vecMins", vector1);
+	float vector2[3]; GetEntPropVector(entity, Prop_Data, "m_vecMaxs", vector2);
+	float vector3[3];
+	
+	if (vector1[0] < 0) { vector1[0] /= (-1); }
+	if (vector1[1] < 0) { vector1[1] /= (-1); }
+	if (vector1[2] < 0) { vector1[2] /= (-1); }
+	
+	char auth[256]; GetClientAuthId(client, AuthId_SteamID64, auth, sizeof(auth));
+	char buffer[128]; FormatEx(buffer, sizeof(buffer), "enttemp_%i", auth);
+	vector3[0] = vector1[0] + vector2[0];
+	CreatePropRelative(entity, vector3, buffer);
+	vector3[0] = (vector1[0] + vector2[0]) / (-1);
+	CreatePropRelative(entity, vector3, buffer);
+	vector3[0] = 0.0;
+	vector3[1] = vector1[1] + vector2[1];
+	CreatePropRelative(entity, vector3, buffer);
+	vector3[1] = (vector1[1] + vector2[1]) / (-1);
+	CreatePropRelative(entity, vector3, buffer);
+	vector3[1] = 0.0;
+	vector3[2] = vector1[2] + vector2[2];
+	CreatePropRelative(entity, vector3, buffer);
+	vector3[2] = (vector1[2] + vector2[2]) / (-1);
+	CreatePropRelative(entity, vector3, buffer);
+}
+
+void DeleteTempEnts(int client) {
+	for (int e = 1; e <= GetMaxEntities(); e++) {
+		if (IsValidEntity(e)) {
+			char tname[128]; GetEntPropString(e, Prop_Data, "m_iName", tname, sizeof(tname));
+			char auth[256]; GetClientAuthId(client, AuthId_SteamID64, auth, sizeof(auth));
+			char buffer[128]; FormatEx(buffer, sizeof(buffer), "enttemp_%s", auth);
+			if (StrContains(tname, buffer) == 0) {
+				if (e != -1) {
+					RemoveEdict(e);
+				}
+			}
+		}
+	}
+}
+
 public Action sm_fire(int client, int args) {
 	if (client == 0) { return Plugin_Handled; }
 	if (args < 2) {
@@ -191,7 +268,7 @@ public Action sm_fire(int client, int args) {
 	return Plugin_Handled;
 }
 
-void ent_fire(int client, char[] target, char[] action, char[] value) {
+stock void ent_fire(int client, char[] target, char[] action, char[] value) {
 	int num;
 	if (StrEqual(target, "!picker", false)) {
 		int itarget = GetClientAimTarget(client, false);
@@ -313,7 +390,7 @@ void ent_fire(int client, char[] target, char[] action, char[] value) {
 	iCounter = 0;
 }
 
-void ent_action(int client, int itarget, char[] action, char[] value, bool multiple) {
+stock void ent_action(int client, int itarget, char[] action, char[] value, bool multiple) {
 	iCounter++;
 	if (itarget <= 0 || !IsValidEntity(itarget)) {
 		if (iCounter == 1)
@@ -775,7 +852,60 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 					ReplyToCommand(client, "[SM] saveprops <filename>");
 				}
 				else {
-					CreateFile(client, itarget, value);
+					char dir[256]; BuildPath(Path_SM, dir, sizeof(dir), PROPSAVE_DIR);
+					if (!DirExists(dir)) {
+						CreateDirectory(dir, 0);
+					}
+					char auth[256]; GetClientAuthId(itarget, AuthId_SteamID64, auth, sizeof(auth));
+					char filename[256]; FormatEx(filename, sizeof(filename), "%s/%s_%s.cfg", PROPSAVE_DIR, value, auth);
+					char filepath[256]; BuildPath(Path_SM, filepath, sizeof(filepath), filename);
+					int check;
+					for (int e = 1; e <= GetMaxEntities(); e++) {
+						if (IsValidEntity(e)) {
+							char cname[128]; GetEntityClassname(e, cname, sizeof(cname));
+							char tname[128]; GetEntPropString(e, Prop_Data, "m_iName", tname, sizeof(tname));
+							char buffer[128]; FormatEx(buffer, sizeof(buffer), "entprop_%s", auth);
+							if (StrContains(tname, buffer) == 0) {
+								if (e != -1 && StrEqual(cname, "prop_dynamic")) {
+									check++;
+								}
+							}
+						}
+					}
+					int num;
+					if (check > 0) {
+						Handle filehandle = OpenFile(filepath, "w");
+						for (int e = 1; e <= GetMaxEntities(); e++) {
+							if (IsValidEntity(e)) {
+								char cname[128]; GetEntityClassname(e, cname, sizeof(cname));
+								char tname[128]; GetEntPropString(e, Prop_Data, "m_iName", tname, sizeof(tname));
+								char buffer[128]; FormatEx(buffer, sizeof(buffer), "entprop_%s", auth);
+								if (StrContains(tname, buffer) == 0) {
+									if (e != -1 && StrEqual(cname, "prop_dynamic")) {
+										char model[512]; GetEntPropString(e, Prop_Data, "m_ModelName", model, sizeof(model));
+										int parent = GetEntPropEnt(e, Prop_Data, "m_hParent");
+										int solid = GetEntProp(e, Prop_Data, "m_nSolidType");
+										float scale = GetEntPropFloat(e, Prop_Data, "m_flModelScale");
+										float entorg[3]; GetEntPropVector(e, Prop_Data, "m_vecOrigin", entorg);
+										float entang[3]; GetEntPropVector(e, Prop_Data, "m_angRotation", entang);
+										int red, green, blue, alpha;
+										GetEntityRenderColor(e, red, green, blue, alpha);
+										char mapname[256]; GetCurrentMap(mapname, sizeof(mapname));
+										char string[512];
+										Format(string, sizeof(string), "%s|%s|%i|%i|%f|%f|%f|%f|%f|%f|%f|%i|%i|%i|%i", 
+											mapname, model, parent, solid, scale, entorg[0], entorg[1], entorg[2], entang[0], entang[1], entang[2], red, green, blue, alpha);
+										WriteFileLine(filehandle, "%s", string);
+										num++;
+									}
+								}
+							}
+						}
+						ReplyToCommand(client, "[SM] %i props saved into %s", num, filename);
+						CloseHandle(filehandle);
+					}
+					else {
+						ReplyToCommand(client, "[SM] No props available for saving.");
+					}
 				}
 			}
 			else {
@@ -794,7 +924,52 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 					ReplyToCommand(client, "[SM] loadprops <filename>");
 				}
 				else {
-					ReadFromFile(client, itarget, value);
+					char auth[256]; GetClientAuthId(itarget, AuthId_SteamID64, auth, sizeof(auth));
+					char buffer[256]; FormatEx(buffer, sizeof(buffer), "%s/%s_%s.cfg", PROPSAVE_DIR, value, auth);
+					char filepath[256]; BuildPath(Path_SM, filepath, sizeof(filepath), buffer);
+					if (!FileExists(filepath)) {
+						ReplyToCommand(client, "[SM] File %s doesn't exist!", buffer);
+					}
+					else {
+						int num;
+						char line[512], realmap[256];
+						Handle filehandle = OpenFile(filepath, "r");
+						while (!IsEndOfFile(filehandle) && ReadFileLine(filehandle, line, sizeof(line))) {
+							char part[512][128];
+							ExplodeString(line, "|", part, 15, sizeof(part));
+							char mapname[256]; GetCurrentMap(mapname, sizeof(mapname));
+							if (StrEqual(part[0], mapname)) {
+								char name[128]; FormatEx(name, sizeof(name), "entprop_%s", auth);
+								PrecacheModel(part[1]);
+								int prop = CreateEntityByName("prop_dynamic");
+								DispatchKeyValue(prop, "model", part[1]);
+								DispatchKeyValue(prop, "targetname", buffer);
+								DispatchKeyValue(prop, "solid", part[3]);
+								DispatchKeyValue(prop, "modelscale", part[4]);
+								DispatchSpawn(prop);
+								SetEntPropEnt(prop, Prop_Data, "m_hParent", StringToInt(part[2]));
+								float entorg[3]; entorg[0] = StringToFloat(part[5]); entorg[1] = StringToFloat(part[6]); entorg[2] = StringToFloat(part[7]);
+								float entang[3]; entang[0] = StringToFloat(part[8]); entang[1] = StringToFloat(part[9]); entang[2] = StringToFloat(part[10]);
+								TeleportEntity(prop, entorg, entang, NULL_VECTOR);
+								SetEntityRenderColor(prop, StringToInt(part[11]), StringToInt(part[12]), StringToInt(part[13]), StringToInt(part[14]));
+								SetEntityRenderMode(prop, RENDER_TRANSALPHAADD);
+							}
+							else {
+								strcopy(realmap, sizeof(realmap), part[0]);
+							}
+							num++;
+						}
+						if (num == 0) {
+							ReplyToCommand(client, "[SM] File %s is empty", buffer);
+						}
+						else if (!StrEqual(realmap, "")) {
+							ReplyToCommand(client, "[SM] Wrong map! These were saved in %s.", realmap);
+						}
+						else {
+							ReplyToCommand(client, "[SM] Spawned %i saved props from %s", num, buffer);
+						}
+						CloseHandle(filehandle);
+					}
 				}
 			}
 			else {
@@ -951,7 +1126,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 	}
 }
 
-void ent_trace(int client, float startpos[3], float startang[3], float endpos[3], int entity, char[] action, char[] value) {
+stock void ent_trace(int client, float startpos[3], float startang[3], float endpos[3], int entity, char[] action, char[] value) {
 	if (StrEqual(action, "data", false)) {
 		ReplyToCommand(client, "StartPos: %.0f %.0f %.0f", startpos[0], startpos[1], startpos[2]);
 		ReplyToCommand(client, "StartAng: %.0f %.0f %.0f", startang[0], startang[1], startang[2]);
@@ -1119,202 +1294,3 @@ void ent_trace(int client, float startpos[3], float startang[3], float endpos[3]
 		}
 	}
 }
-
-int GetAimEntity(int client) {
-	float org[3]; GetClientEyePosition(client, org);
-	float ang[3]; GetClientEyeAngles(client, ang);
-	Handle trace = TR_TraceRayFilterEx(org, ang, MASK_SHOT, RayType_Infinite, filter_player, client);
-	int ent = TR_GetEntityIndex(trace);
-	CloseHandle(trace);
-	return ent;
-}
-
-int CreatePropRelative(int entity, float offset[3], char[] name) {
-	float org[3]; GetEntPropVector(entity, Prop_Data, "m_vecOrigin", org);
-	float ang[3]; GetEntPropVector(entity, Prop_Data, "m_angRotation", ang);
-	char model[256]; GetEntPropString(entity, Prop_Data, "m_ModelName", model, sizeof(model));
-	PrecacheModel(model);
-	org[0] += offset[0];
-	org[1] += offset[1];
-	org[2] += offset[2];
-	int prop = CreateEntityByName("prop_dynamic");
-	DispatchKeyValue(prop, "model", model);
-	DispatchKeyValue(prop, "targetname", name);
-	DispatchKeyValue(prop, "solid", "4");
-	DispatchSpawn(prop);
-	TeleportEntity(prop, org, ang, NULL_VECTOR);
-	SetEntityRenderColor(prop, 255, 255, 255, 0);
-	SetEntityRenderMode(prop, RENDER_TRANSALPHAADD);
-	return prop;
-}
-
-void CreateTempEnts(int client, int entity) {
-	float vector1[3]; GetEntPropVector(entity, Prop_Data, "m_vecMins", vector1);
-	float vector2[3]; GetEntPropVector(entity, Prop_Data, "m_vecMaxs", vector2);
-	float vector3[3];
-	
-	if (vector1[0] < 0) { vector1[0] /= (-1); }
-	if (vector1[1] < 0) { vector1[1] /= (-1); }
-	if (vector1[2] < 0) { vector1[2] /= (-1); }
-	
-	char auth[256]; GetClientAuthId(client, AuthId_SteamID64, auth, sizeof(auth));
-	char buffer[128]; FormatEx(buffer, sizeof(buffer), "enttemp_%i", auth);
-	vector3[0] = vector1[0] + vector2[0];
-	CreatePropRelative(entity, vector3, buffer);
-	vector3[0] = (vector1[0] + vector2[0]) / (-1);
-	CreatePropRelative(entity, vector3, buffer);
-	vector3[0] = 0.0;
-	vector3[1] = vector1[1] + vector2[1];
-	CreatePropRelative(entity, vector3, buffer);
-	vector3[1] = (vector1[1] + vector2[1]) / (-1);
-	CreatePropRelative(entity, vector3, buffer);
-	vector3[1] = 0.0;
-	vector3[2] = vector1[2] + vector2[2];
-	CreatePropRelative(entity, vector3, buffer);
-	vector3[2] = (vector1[2] + vector2[2]) / (-1);
-	CreatePropRelative(entity, vector3, buffer);
-}
-
-void DeleteTempEnts(int client) {
-	for (int e = 1; e <= GetMaxEntities(); e++) {
-		if (IsValidEntity(e)) {
-			char tname[128]; GetEntPropString(e, Prop_Data, "m_iName", tname, sizeof(tname));
-			char auth[256]; GetClientAuthId(client, AuthId_SteamID64, auth, sizeof(auth));
-			char buffer[128]; FormatEx(buffer, sizeof(buffer), "enttemp_%s", auth);
-			if (StrContains(tname, buffer) == 0) {
-				if (e != -1) {
-					RemoveEdict(e);
-				}
-			}
-		}
-	}
-}
-
-void OnButtonPress(int client, int button) {
-	if (button == IN_SPEED && bMove[client] == true) {
-		if (iMoveTarget[client] > 0 && IsValidEntity(iMoveTarget[client])) {
-			float org[3]; GetEntPropVector(iMoveTarget[client], Prop_Data, "m_vecOrigin", org);
-			TeleportEntity(iMove[client], org, NULL_VECTOR, NULL_VECTOR);
-			DeleteTempEnts(client);
-			CreateTempEnts(client, iMove[client]);
-		}
-	}
-}
-
-void CreateFile(int client, int target, char[] filename) {
-	char dir[256]; BuildPath(Path_SM, dir, sizeof(dir), PROPSAVE_DIR);
-	if (!DirExists(dir)) {
-		CreateDirectory(dir, 0);
-	}
-	char auth[256]; GetClientAuthId(target, AuthId_SteamID64, auth, sizeof(auth));
-	char buffer[256]; FormatEx(buffer, sizeof(buffer), "%s/%s_%s.cfg", PROPSAVE_DIR, filename, auth);
-	char filepath[256]; BuildPath(Path_SM, filepath, sizeof(filepath), buffer);
-	WriteToFile(client, target, filepath, buffer);
-}
-
-void WriteToFile(int client, int target, char[] path, char[] filename) {
-	int check;
-	for (int e = 1; e <= GetMaxEntities(); e++) {
-		if (IsValidEntity(e)) {
-			char cname[128]; GetEntityClassname(e, cname, sizeof(cname));
-			char tname[128]; GetEntPropString(e, Prop_Data, "m_iName", tname, sizeof(tname));
-			char auth[256]; GetClientAuthId(target, AuthId_SteamID64, auth, sizeof(auth));
-			char buffer[128]; FormatEx(buffer, sizeof(buffer), "entprop_%s", auth);
-			if (StrContains(tname, buffer) == 0) {
-				if (e != -1 && StrEqual(cname, "prop_dynamic")) {
-					check++;
-				}
-			}
-		}
-	}
-	int num;
-	if (check > 0) {
-		Handle filehandle = OpenFile(path, "w");
-		for (int e = 1; e <= GetMaxEntities(); e++) {
-			if (IsValidEntity(e)) {
-				char cname[128]; GetEntityClassname(e, cname, sizeof(cname));
-				char tname[128]; GetEntPropString(e, Prop_Data, "m_iName", tname, sizeof(tname));
-				char auth[256]; GetClientAuthId(target, AuthId_SteamID64, auth, sizeof(auth));
-				char buffer[128]; FormatEx(buffer, sizeof(buffer), "entprop_%s", auth);
-				if (StrContains(tname, buffer) == 0) {
-					if (e != -1 && StrEqual(cname, "prop_dynamic")) {
-						char model[512]; GetEntPropString(e, Prop_Data, "m_ModelName", model, sizeof(model));
-						int parent = GetEntPropEnt(e, Prop_Data, "m_hParent");
-						int solid = GetEntProp(e, Prop_Data, "m_nSolidType");
-						float scale = GetEntPropFloat(e, Prop_Data, "m_flModelScale");
-						float entorg[3]; GetEntPropVector(e, Prop_Data, "m_vecOrigin", entorg);
-						float entang[3]; GetEntPropVector(e, Prop_Data, "m_angRotation", entang);
-						int red, green, blue, alpha;
-						GetEntityRenderColor(e, red, green, blue, alpha);
-						char mapname[256]; GetCurrentMap(mapname, sizeof(mapname));
-						char string[512];
-						Format(string, sizeof(string), "%s|%s|%i|%i|%f|%f|%f|%f|%f|%f|%f|%i|%i|%i|%i", 
-							mapname, model, parent, solid, scale, entorg[0], entorg[1], entorg[2], entang[0], entang[1], entang[2], red, green, blue, alpha);
-						WriteFileLine(filehandle, "%s", string);
-						num++;
-					}
-				}
-			}
-		}
-		ReplyToCommand(client, "[SM] %i props saved into %s", num, filename);
-		CloseHandle(filehandle);
-	}
-	else {
-		ReplyToCommand(client, "[SM] No props available for saving.");
-	}
-}
-
-void ReadFromFile(int client, int target, char[] filename) {
-	char auth[256]; GetClientAuthId(target, AuthId_SteamID64, auth, sizeof(auth));
-	char buffer[256]; FormatEx(buffer, sizeof(buffer), "%s/%s_%s.cfg", PROPSAVE_DIR, filename, auth);
-	char filepath[256]; BuildPath(Path_SM, filepath, sizeof(filepath), buffer);
-	if (!FileExists(filepath)) {
-		ReplyToCommand(client, "[SM] File %s doesn't exist!", buffer);
-	}
-	else {
-		Handle filehandle = OpenFile(filepath, "r");
-		char line[512];
-		int num;
-		char realmap[256];
-		while (!IsEndOfFile(filehandle) && ReadFileLine(filehandle, line, sizeof(line))) {
-			char part[512][128];
-			ExplodeString(line, "|", part, 15, sizeof(part));
-			char mapname[256]; GetCurrentMap(mapname, sizeof(mapname));
-			if (StrEqual(part[0], mapname)) {
-				RecoverProp(target, part[1], StringToInt(part[2]), part[3], part[4], StringToFloat(part[5]), StringToFloat(part[6]), StringToFloat(part[7]), StringToFloat(part[8]), StringToFloat(part[9]), StringToFloat(part[10]), StringToInt(part[11]), StringToInt(part[12]), StringToInt(part[13]), StringToInt(part[14]));
-			}
-			else {
-				strcopy(realmap, sizeof(realmap), part[0]);
-			}
-			num++;
-		}
-		if (num == 0) {
-			ReplyToCommand(client, "[SM] File %s is empty", buffer);
-		}
-		else if (!StrEqual(realmap, "")) {
-			ReplyToCommand(client, "[SM] Wrong map! These were saved in %s.", realmap);
-		}
-		else {
-			ReplyToCommand(client, "[SM] Spawned %i saved props from %s", num, buffer);
-		}
-		CloseHandle(filehandle);
-	}
-}
-
-void RecoverProp(int client, char[] model, int parent, char[] solid, char[] scale, float entorg0, float entorg1, float entorg2, float entang0, float entang1, float entang2, int red, int green, int blue, int alpha) {
-	char auth[256]; GetClientAuthId(client, AuthId_SteamID64, auth, sizeof(auth));
-	char buffer[128]; FormatEx(buffer, sizeof(buffer), "entprop_%s", auth);
-	PrecacheModel(model);
-	int prop = CreateEntityByName("prop_dynamic");
-	DispatchKeyValue(prop, "model", model);
-	DispatchKeyValue(prop, "targetname", buffer);
-	DispatchKeyValue(prop, "solid", solid);
-	DispatchKeyValue(prop, "modelscale", scale);
-	DispatchSpawn(prop);
-	SetEntPropEnt(prop, Prop_Data, "m_hParent", parent);
-	float entorg[3]; entorg[0] = entorg0; entorg[1] = entorg1; entorg[2] = entorg2;
-	float entang[3]; entang[0] = entang0; entang[1] = entang1; entang[2] = entang2;
-	TeleportEntity(prop, entorg, entang, NULL_VECTOR);
-	SetEntityRenderColor(prop, red, green, blue, alpha);
-	SetEntityRenderMode(prop, RENDER_TRANSALPHAADD);
-} 
