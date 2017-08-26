@@ -30,7 +30,7 @@ public Plugin myinfo =  {
 	name = "SM_Fire", 
 	author = "pear", 
 	description = "entity debugging", 
-	version = "1.5.2", 
+	version = "1.5.3", 
 	url = ""
 };
 
@@ -130,7 +130,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float veloc
 		int aim = GetAimEntity(client);
 		if (aim > 0) {
 			char tname[128]; GetEntPropString(aim, Prop_Data, "m_iName", tname, sizeof(tname));
-			char buffer[128]; FormatEx(buffer, sizeof(buffer), "enttemp_%i", GetClientUserId(client));
+			char auth[256]; GetClientAuthId(client, AuthId_SteamID64, auth, sizeof(auth));
+			char buffer[128]; FormatEx(buffer, sizeof(buffer), "enttemp_%s", auth);
 			if (StrContains(tname, buffer) == 0) {
 				if (iMoveTarget[client] != aim) {
 					if (IsValidEntity(iMoveTarget[client])) {
@@ -735,7 +736,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 					ReplyToCommand(client, "[SM] saveprops <filename>");
 				}
 				else {
-					CreateFile(itarget, value);
+					CreateFile(client, itarget, value);
 				}
 			}
 			else {
@@ -754,7 +755,7 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 					ReplyToCommand(client, "[SM] loadprops <filename>");
 				}
 				else {
-					ReadFromFile(itarget, value);
+					ReadFromFile(client, itarget, value);
 				}
 			}
 			else {
@@ -923,7 +924,8 @@ void ent_trace(int client, float startpos[3], float startang[3], float endpos[3]
 			ReplyToCommand(client, "[SM] prop <modelpath>");
 		}
 		else {
-			char targetname[256]; FormatEx(targetname, sizeof(targetname), "entprop_%i", GetClientUserId(client));
+			char auth[256]; GetClientAuthId(client, AuthId_SteamID64, auth, sizeof(auth));
+			char targetname[256]; FormatEx(targetname, sizeof(targetname), "entprop_%s", auth);
 			PrecacheModel(value);
 			int prop = CreateEntityByName("prop_dynamic");
 			DispatchKeyValue(prop, "physdamagescale", "0.0");
@@ -1116,7 +1118,8 @@ void CreateTempEnts(int client, int entity) {
 	if (vector1[1] < 0) { vector1[1] /= (-1); }
 	if (vector1[2] < 0) { vector1[2] /= (-1); }
 	
-	char buffer[128]; FormatEx(buffer, sizeof(buffer), "enttemp_%i", GetClientUserId(client));
+	char auth[256]; GetClientAuthId(client, AuthId_SteamID64, auth, sizeof(auth));
+	char buffer[128]; FormatEx(buffer, sizeof(buffer), "enttemp_%i", auth);
 	vector3[0] = vector1[0] + vector2[0];
 	CreatePropRelative(entity, vector3, buffer);
 	vector3[0] = (vector1[0] + vector2[0]) / (-1);
@@ -1137,7 +1140,8 @@ void DeleteTempEnts(int client) {
 	for (int e = 1; e <= GetMaxEntities(); e++) {
 		if (IsValidEntity(e)) {
 			char tname[128]; GetEntPropString(e, Prop_Data, "m_iName", tname, sizeof(tname));
-			char buffer[128]; FormatEx(buffer, sizeof(buffer), "enttemp_%i", GetClientUserId(client));
+			char auth[256]; GetClientAuthId(client, AuthId_SteamID64, auth, sizeof(auth));
+			char buffer[128]; FormatEx(buffer, sizeof(buffer), "enttemp_%s", auth);
 			if (StrContains(tname, buffer) == 0) {
 				if (e != -1) {
 					RemoveEdict(e);
@@ -1171,23 +1175,25 @@ void OnButtonPress(int client, int button) {
 	}
 }
 
-void CreateFile(int client, char[] filename) {
+void CreateFile(int client, int target, char[] filename) {
 	char dir[256]; BuildPath(Path_SM, dir, sizeof(dir), PROPSAVE_DIR);
 	if (!DirExists(dir)) {
 		CreateDirectory(dir, 0);
 	}
-	char buffer[256]; FormatEx(buffer, sizeof(buffer), "%s/%s_%i.cfg", PROPSAVE_DIR, filename, GetClientUserId(client));
+	char auth[256]; GetClientAuthId(target, AuthId_SteamID64, auth, sizeof(auth));
+	char buffer[256]; FormatEx(buffer, sizeof(buffer), "%s/%s_%s.cfg", PROPSAVE_DIR, filename, auth);
 	char filepath[256]; BuildPath(Path_SM, filepath, sizeof(filepath), buffer);
-	WriteToFile(client, filepath, buffer);
+	WriteToFile(client, target, filepath, buffer);
 }
 
-void WriteToFile(int client, char[] path, char[] filename) {
+void WriteToFile(int client, int target, char[] path, char[] filename) {
 	int check;
 	for (int e = 1; e <= GetMaxEntities(); e++) {
 		if (IsValidEntity(e)) {
 			char cname[128]; GetEntityClassname(e, cname, sizeof(cname));
 			char tname[128]; GetEntPropString(e, Prop_Data, "m_iName", tname, sizeof(tname));
-			char buffer[128]; FormatEx(buffer, sizeof(buffer), "entprop_%i", GetClientUserId(client));
+			char auth[256]; GetClientAuthId(target, AuthId_SteamID64, auth, sizeof(auth));
+			char buffer[128]; FormatEx(buffer, sizeof(buffer), "entprop_%s", auth);
 			if (StrContains(tname, buffer) == 0) {
 				if (e != -1 && StrEqual(cname, "prop_dynamic")) {
 					check++;
@@ -1202,7 +1208,8 @@ void WriteToFile(int client, char[] path, char[] filename) {
 			if (IsValidEntity(e)) {
 				char cname[128]; GetEntityClassname(e, cname, sizeof(cname));
 				char tname[128]; GetEntPropString(e, Prop_Data, "m_iName", tname, sizeof(tname));
-				char buffer[128]; FormatEx(buffer, sizeof(buffer), "entprop_%i", GetClientUserId(client));
+				char auth[256]; GetClientAuthId(target, AuthId_SteamID64, auth, sizeof(auth));
+				char buffer[128]; FormatEx(buffer, sizeof(buffer), "entprop_%s", auth);
 				if (StrContains(tname, buffer) == 0) {
 					if (e != -1 && StrEqual(cname, "prop_dynamic")) {
 						char model[512]; GetEntPropString(e, Prop_Data, "m_ModelName", model, sizeof(model));
@@ -1231,8 +1238,9 @@ void WriteToFile(int client, char[] path, char[] filename) {
 	}
 }
 
-void ReadFromFile(int client, char[] filename) {
-	char buffer[256]; FormatEx(buffer, sizeof(buffer), "%s/%s_%i.cfg", PROPSAVE_DIR, filename, GetClientUserId(client));
+void ReadFromFile(int client, int target, char[] filename) {
+	char auth[256]; GetClientAuthId(target, AuthId_SteamID64, auth, sizeof(auth));
+	char buffer[256]; FormatEx(buffer, sizeof(buffer), "%s/%s_%s.cfg", PROPSAVE_DIR, filename, auth);
 	char filepath[256]; BuildPath(Path_SM, filepath, sizeof(filepath), buffer);
 	if (!FileExists(filepath)) {
 		ReplyToCommand(client, "[SM] File %s doesn't exist!", buffer);
@@ -1247,7 +1255,7 @@ void ReadFromFile(int client, char[] filename) {
 			ExplodeString(line, "|", part, 15, sizeof(part));
 			char mapname[256]; GetCurrentMap(mapname, sizeof(mapname));
 			if (StrEqual(part[0], mapname)) {
-				RecoverProp(client, part[1], StringToInt(part[2]), part[3], part[4], StringToFloat(part[5]), StringToFloat(part[6]), StringToFloat(part[7]), StringToFloat(part[8]), StringToFloat(part[9]), StringToFloat(part[10]), StringToInt(part[11]), StringToInt(part[12]), StringToInt(part[13]), StringToInt(part[14]));
+				RecoverProp(target, part[1], StringToInt(part[2]), part[3], part[4], StringToFloat(part[5]), StringToFloat(part[6]), StringToFloat(part[7]), StringToFloat(part[8]), StringToFloat(part[9]), StringToFloat(part[10]), StringToInt(part[11]), StringToInt(part[12]), StringToInt(part[13]), StringToInt(part[14]));
 			}
 			else {
 				strcopy(realmap, sizeof(realmap), part[0]);
@@ -1268,7 +1276,8 @@ void ReadFromFile(int client, char[] filename) {
 }
 
 void RecoverProp(int client, char[] model, int parent, char[] solid, char[] scale, float entorg0, float entorg1, float entorg2, float entang0, float entang1, float entang2, int red, int green, int blue, int alpha) {
-	char buffer[128]; FormatEx(buffer, sizeof(buffer), "entprop_%i", GetClientUserId(client));
+	char auth[256]; GetClientAuthId(client, AuthId_SteamID64, auth, sizeof(auth));
+	char buffer[128]; FormatEx(buffer, sizeof(buffer), "entprop_%s", auth);
 	PrecacheModel(model);
 	int prop = CreateEntityByName("prop_dynamic");
 	DispatchKeyValue(prop, "model", model);
