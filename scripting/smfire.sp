@@ -30,7 +30,7 @@ public Plugin myinfo =  {
 	name = "SM_Fire", 
 	author = "pear", 
 	description = "entity debugging", 
-	version = "1.5.3", 
+	version = "1.5.4", 
 	url = ""
 };
 
@@ -49,7 +49,16 @@ public void OnPluginStart() {
 }
 
 public void OnPluginEnd() {
-	DeleteAllTempEnts();
+	for (int e = 1; e <= GetMaxEntities(); e++) {
+		if (IsValidEntity(e)) {
+			char tname[128]; GetEntPropString(e, Prop_Data, "m_iName", tname, sizeof(tname));
+			if (StrContains(tname, "enttemp") == 0) {
+				if (e != -1) {
+					RemoveEdict(e);
+				}
+			}
+		}
+	}
 }
 
 public void OnGameFrame() {
@@ -728,6 +737,36 @@ void ent_action(int client, int itarget, char[] action, char[] value, bool multi
 				ReplyToCommand(client, "[SM] Target must be a player!");
 		}
 	}
+	else if (StrEqual(action, "noclip", false)) {
+		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
+		if (StrEqual(ename, "player")) {
+			if (StrEqual(value, "")) {
+				MoveType movetype = GetEntityMoveType(itarget);
+				if (movetype != MOVETYPE_NOCLIP) {
+					SetEntityMoveType(itarget, MOVETYPE_NOCLIP);
+				}
+				else {
+					SetEntityMoveType(itarget, MOVETYPE_WALK);
+				}
+			}
+			else {
+				if (StrEqual(value, "on")) {
+					SetEntityMoveType(itarget, MOVETYPE_NOCLIP);
+				}
+				else if (StrEqual(value, "off")) {
+					SetEntityMoveType(itarget, MOVETYPE_WALK);
+				}
+				else {
+					if (iCounter == 1)
+						ReplyToCommand(client, "[SM] noclip <on/off>");
+				}
+			}
+		}
+		else {
+			if (iCounter == 1)
+				ReplyToCommand(client, "[SM] Target must be a player!");
+		}
+	}
 	else if (StrEqual(action, "saveprops", false)) {
 		if (multiple == false) {
 			char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
@@ -1143,19 +1182,6 @@ void DeleteTempEnts(int client) {
 			char auth[256]; GetClientAuthId(client, AuthId_SteamID64, auth, sizeof(auth));
 			char buffer[128]; FormatEx(buffer, sizeof(buffer), "enttemp_%s", auth);
 			if (StrContains(tname, buffer) == 0) {
-				if (e != -1) {
-					RemoveEdict(e);
-				}
-			}
-		}
-	}
-}
-
-void DeleteAllTempEnts() {
-	for (int e = 1; e <= GetMaxEntities(); e++) {
-		if (IsValidEntity(e)) {
-			char tname[128]; GetEntPropString(e, Prop_Data, "m_iName", tname, sizeof(tname));
-			if (StrContains(tname, "enttemp") == 0) {
 				if (e != -1) {
 					RemoveEdict(e);
 				}
