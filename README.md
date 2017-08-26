@@ -27,7 +27,7 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - `teleport <target>`
 - `saveprops <filename>`
 - `loadprops <filename>`
-- `deletefile <filename> (ignores target)`
+- `deletefile <filename>`
 - {datamap manipulation}
 #### SINGLE + MULTIPLE
 - `data (full)`
@@ -51,6 +51,7 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - `pitch <0-255>`
 - `color <R+G+B+A> [0-255]`
 - `setclip <value>`
+- `noclip (on/off)`
 - {tf_weapon equipping}
 - {all other ent_fire actions}
 #### ONLY SPECIAL
