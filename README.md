@@ -20,6 +20,7 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - classname
 #### SPECIAL
 - !aim
+- !file
 
 ## ACTIONS
 #### SINGLE
@@ -54,7 +55,7 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - `noclip (on/off)`
 - {tf_weapon equipping}
 - {all other ent_fire actions}
-#### ONLY SPECIAL
+#### AIM
 - `data (full)`
 - `prop <modelpath>`
 - `create <classname>`
@@ -65,6 +66,10 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - `paste`
 - `shift (value)`
 - `move [bind +speed]`
+- `choose [bind +speed]`
+
+### FILE
+- `delete <filename>
 
 ## DATAMAP MANIPULATION
 `sm_fire <target> <datamap> <*any>`

@@ -8,6 +8,8 @@
 #define MAX_BUTTONS 25
 #define IN_SPEED	(1 << 17)
 #define DATA_DIR "data/smfire"
+#define SAVES_DIR "data/smfire/saves"
+#define PROPS_DIR "data/smfire/props"
 
 int lastbuttons[MAXPLAYERS + 1];
 int iCounter;
@@ -25,6 +27,9 @@ int iWeapon[MAXPLAYERS + 1];
 int iMove[MAXPLAYERS + 1];
 int iMoveTarget[MAXPLAYERS + 1];
 bool bMove[MAXPLAYERS + 1];
+bool bChoose[MAXPLAYERS + 1];
+int iChoose[MAXPLAYERS + 1];
+Handle hChoose[MAXPLAYERS + 1];
 
 public Plugin myinfo =  {
 	name = "SM_Fire", 
@@ -96,6 +101,34 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float veloc
 						DeleteTempEnts(client);
 						CreateTempEnts(client, iMove[client]);
 					}
+				}
+				else if (button == IN_SPEED && bChoose[client] == true) {
+					char line[512];
+					if (IsEndOfFile(hChoose[client])) {
+						FileSeek(hChoose[client], 0, SEEK_SET);
+					}
+					ReadFileLine(hChoose[client], line, sizeof(line));
+					TrimString(line);
+					PrecacheModel(line);
+					float playerang[3]; GetClientEyeAngles(client, playerang);
+					float playerorg[3]; GetClientEyePosition(client, playerorg);
+					Handle trace = TR_TraceRayFilterEx(playerorg, playerang, MASK_SHOT, RayType_Infinite, filter_multiple, client);
+					int prop = CreateEntityByName("prop_dynamic");
+					DispatchKeyValue(prop, "model", line);
+					DispatchKeyValue(prop, "solid", "6");
+					DispatchSpawn(prop);
+					if (iChoose[client] > 0) {
+						float entorg[3]; GetEntPropVector(iChoose[client], Prop_Data, "m_vecOrigin", entorg);
+						RemoveEdict(iChoose[client]);
+						TeleportEntity(prop, entorg, NULL_VECTOR, NULL_VECTOR);
+					}
+					else {
+						float endpos[3]; TR_GetEndPosition(endpos, trace);
+						TeleportEntity(prop, endpos, NULL_VECTOR, NULL_VECTOR);
+					}
+					CloseHandle(trace);
+					iChoose[client] = prop;
+					PrintToChatAll("%s", line);
 				}
 			}
 		}
@@ -174,7 +207,7 @@ public bool filter_player(int entity, int mask, any data) {
 }
 
 public bool filter_multiple(int entity, int mask, any data) {
-	if (entity == data || entity == iShift[data]) {
+	if (entity == data || entity == iShift[data] || entity == iChoose[data]) {
 		return false;
 	}
 	else {
@@ -220,7 +253,7 @@ void CreateTempEnts(int client, int entity) {
 	if (vector1[2] < 0) { vector1[2] /= (-1); }
 	
 	char auth[256]; GetClientAuthId(client, AuthId_SteamID64, auth, sizeof(auth));
-	char buffer[128]; FormatEx(buffer, sizeof(buffer), "enttemp_%i", auth);
+	char buffer[128]; FormatEx(buffer, sizeof(buffer), "enttemp_%s", auth);
 	vector3[0] = vector1[0] + vector2[0];
 	CreatePropRelative(entity, vector3, buffer);
 	vector3[0] = (vector1[0] + vector2[0]) / (-1);
@@ -859,8 +892,12 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 					if (!DirExists(dir)) {
 						CreateDirectory(dir, 0);
 					}
+					BuildPath(Path_SM, dir, sizeof(dir), SAVES_DIR);
+					if (!DirExists(dir)) {
+						CreateDirectory(dir, 0);
+					}
 					char auth[256]; GetClientAuthId(itarget, AuthId_SteamID64, auth, sizeof(auth));
-					char filename[256]; FormatEx(filename, sizeof(filename), "%s/%s_%s.cfg", DATA_DIR, value, auth);
+					char filename[256]; FormatEx(filename, sizeof(filename), "%s/%s_%s.cfg", SAVES_DIR, value, auth);
 					char filepath[256]; BuildPath(Path_SM, filepath, sizeof(filepath), filename);
 					int check;
 					for (int e = 1; e <= GetMaxEntities(); e++) {
@@ -928,7 +965,7 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 				}
 				else {
 					char auth[256]; GetClientAuthId(itarget, AuthId_SteamID64, auth, sizeof(auth));
-					char buffer[256]; FormatEx(buffer, sizeof(buffer), "%s/%s_%s.cfg", DATA_DIR, value, auth);
+					char buffer[256]; FormatEx(buffer, sizeof(buffer), "%s/%s_%s.cfg", SAVES_DIR, value, auth);
 					char filepath[256]; BuildPath(Path_SM, filepath, sizeof(filepath), buffer);
 					if (!FileExists(filepath)) {
 						ReplyToCommand(client, "[SM] File %s doesn't exist!", buffer);
@@ -1276,6 +1313,40 @@ stock void ent_trace(int client, float startpos[3], float startang[3], float end
 		else {
 			DeleteTempEnts(client);
 			bMove[client] = false;
+		}
+	}
+	else if (StrEqual(action, "choose", false)) {
+		if (!StrEqual(value, "")) {
+			if (bChoose[client] == false) {
+				char dir[256]; BuildPath(Path_SM, dir, sizeof(dir), DATA_DIR);
+				if (!DirExists(dir)) {
+					CreateDirectory(dir, 0);
+				}
+				BuildPath(Path_SM, dir, sizeof(dir), PROPS_DIR);
+				if (!DirExists(dir)) {
+					CreateDirectory(dir, 0);
+				}
+				char filename[256]; FormatEx(filename, sizeof(filename), "%s/%s.cfg", PROPS_DIR, value);
+				char filepath[256]; BuildPath(Path_SM, filepath, sizeof(filepath), filename);
+				if (FileExists(filepath)) {
+					hChoose[client] = OpenFile(filepath, "r");
+					bChoose[client] = true;
+					ReplyToCommand(client, "[SM] Choosing props from %s", filename);
+				}
+				else {
+					ReplyToCommand(client, "[SM] %s doesn't exist!", filename);
+				}
+			}
+		}
+		else {
+			if (bChoose[client] == true) {
+				bChoose[client] = false;
+				CloseHandle(hChoose[client]);
+				ReplyToCommand(client, "[SM] Stopped choosing!");
+			}
+			else {
+				ReplyToCommand(client, "[SM] choose <filename>");
+			}
 		}
 	}
 }
