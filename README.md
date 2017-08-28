@@ -28,7 +28,7 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - `teleport <target>`
 - `saveprops <filename>`
 - `loadprops <filename>`
-- `deletefile <filename>`
+- `clearprops`
 - {datamap manipulation}
 #### SINGLE + MULTIPLE
 - `data (full)`
