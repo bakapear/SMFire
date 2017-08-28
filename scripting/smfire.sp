@@ -7,6 +7,7 @@
 
 #define MAX_BUTTONS 25
 #define IN_SPEED	(1 << 17)
+#define IN_WALK		(1 << 18)	
 #define DATA_DIR "data/smfire"
 #define SAVES_DIR "data/smfire/saves"
 #define PROPS_DIR "data/smfire/props"
@@ -30,6 +31,7 @@ int iMoveTarget[MAXPLAYERS + 1];
 bool bMove[MAXPLAYERS + 1];
 bool bChoose[MAXPLAYERS + 1];
 int iChoose[MAXPLAYERS + 1];
+int iChooseTarget[MAXPLAYERS + 1];
 Handle hChoose[MAXPLAYERS + 1];
 
 public Plugin myinfo =  {
@@ -63,6 +65,11 @@ public void OnPluginEnd() {
 					RemoveEdict(e);
 				}
 			}
+		}
+	}
+	for (int i = 1; i <= MaxClients; i++) {
+		if (IsValidEntity(iChoose[i]) && iChoose[i] != 0) {
+			RemoveEdict(iChoose[i]);
 		}
 	}
 }
@@ -138,9 +145,10 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float veloc
 					int prop = CreateEntityByName("prop_dynamic");
 					DispatchKeyValue(prop, "model", line);
 					DispatchKeyValue(prop, "targetname", buffer);
-					DispatchKeyValue(prop, "solid", "6");
+					DispatchKeyValue(prop, "solid", "4");
 					DispatchSpawn(prop);
-					SetEntityRenderColor(prop, 255, 255, 255, 100);
+					SetEntityRenderColor(prop, 255, 255, 255, 140);
+					SetEntityRenderMode(prop, RENDER_TRANSALPHAADD);
 					if (iChoose[client] > 0) {
 						float entorg[3]; GetEntPropVector(iChoose[client], Prop_Data, "m_vecOrigin", entorg);
 						RemoveEdict(iChoose[client]);
@@ -171,25 +179,50 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float veloc
 					SetEntityRenderMode(prop, GetEntityRenderMode(iShift[client]));
 					SetEntityRenderFx(prop, GetEntityRenderFx(iShift[client]));
 				}
+				if (button == IN_WALK && bChoose[client] == true) {
+					char model[256]; GetEntPropString(iChoose[client], Prop_Data, "m_ModelName", model, sizeof(model));
+					char name[256]; GetEntPropString(iChoose[client], Prop_Data, "m_iName", name, sizeof(name));
+					float entorg[3]; GetEntPropVector(iChoose[client], Prop_Data, "m_vecOrigin", entorg);
+					float entang[3]; GetEntPropVector(iChoose[client], Prop_Data, "m_angRotation", entang);
+					PrecacheModel(model);
+					int prop = CreateEntityByName("prop_dynamic");
+					DispatchKeyValue(prop, "model", model);
+					DispatchKeyValue(prop, "targetname", name);
+					DispatchKeyValue(prop, "solid", "6");
+					DispatchSpawn(prop);
+					TeleportEntity(prop, entorg, entang, NULL_VECTOR);
+					SetEntityRenderColor(prop, 255, 255, 255, 255);
+					SetEntityRenderMode(prop, GetEntityRenderMode(iChoose[client]));
+					SetEntityRenderFx(prop, GetEntityRenderFx(iChoose[client]));
+					iChooseTarget[client] = prop;
+				}
 			}
 		}
 	}
 	lastbuttons[client] = buttons;
 	if (bMove[client] == true) {
-		int aim = GetAimEntity(client);
-		if (aim > 0) {
-			char tname[128]; GetEntPropString(aim, Prop_Data, "m_iName", tname, sizeof(tname));
-			char auth[256]; GetClientAuthId(client, AuthId_SteamID64, auth, sizeof(auth));
-			char buffer[128]; FormatEx(buffer, sizeof(buffer), "enttemp_%s", auth);
-			if (StrContains(tname, buffer) == 0) {
-				if (iMoveTarget[client] != aim) {
-					if (IsValidEntity(iMoveTarget[client])) {
-						SetEntityRenderColor(iMoveTarget[client], 255, 255, 255, 0);
+		if (IsPlayerAlive(client)) {
+			int aim = GetAimEntity(client);
+			if (aim > 0) {
+				char tname[128]; GetEntPropString(aim, Prop_Data, "m_iName", tname, sizeof(tname));
+				char auth[256]; GetClientAuthId(client, AuthId_SteamID64, auth, sizeof(auth));
+				char buffer[128]; FormatEx(buffer, sizeof(buffer), "enttemp_%s", auth);
+				if (StrContains(tname, buffer) == 0) {
+					if (iMoveTarget[client] != aim) {
+						if (IsValidEntity(iMoveTarget[client])) {
+							SetEntityRenderColor(iMoveTarget[client], 255, 255, 255, 0);
+						}
+						iMoveTarget[client] = aim;
+						SetEntityRenderColor(iMoveTarget[client], 255, 255, 255, 128);
 					}
-					iMoveTarget[client] = aim;
-					SetEntityRenderColor(iMoveTarget[client], 255, 255, 255, 128);
 				}
 			}
+		}
+		else {
+			DeleteTempEnts(client);
+			bMove[client] = false;
+			iMoveMode[client] = 0;
+			ReplyToCommand(client, "[SM] Stopped moving!");
 		}
 	}
 	if (bShift[client] == true && iShift[client] != 0 && IsValidEntity(iShift[client])) {
@@ -221,14 +254,19 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float veloc
 			float entang[3]; GetEntPropVector(iChoose[client], Prop_Data, "m_angRotation", entang);
 			Handle trace = TR_TraceRayFilterEx(playerorg, playerang, MASK_SHOT, RayType_Infinite, filter_multiple, client);
 			float endpos[3]; TR_GetEndPosition(endpos, trace);
+			entang[1] = playerang[1];
 			TeleportEntity(iChoose[client], endpos, entang, NULL_VECTOR);
 			CloseHandle(trace);
 		}
 		else {
-			bShift[client] = false;
-			iShift[client] = 0;
-			iShiftMode[client] = 0;
-			ReplyToCommand(client, "[SM] Stopped shifting.");
+			bChoose[client] = false;
+			if (IsValidEntity(iChoose[client]) && iChoose[client] != 0) {
+				RemoveEdict(iChoose[client]);
+			}
+			iChoose[client] = 0;
+			iChooseTarget[client] = 0;
+			CloseHandle(hChoose[client]);
+			ReplyToCommand(client, "[SM] Stopped choosing!");
 		}
 	}
 }
@@ -266,7 +304,7 @@ public bool filter_player(int entity, int mask, any data) {
 }
 
 public bool filter_multiple(int entity, int mask, any data) {
-	if (entity == data || entity == iShift[data] || entity == iChoose[data]) {
+	if (entity == data || entity == iShift[data] || entity == iChoose[data] || entity == iChooseTarget[data]) {
 		return false;
 	}
 	else {
@@ -1369,6 +1407,11 @@ stock void ent_trace(int client, float startpos[3], float startang[3], float end
 			if (IsValidEntity(entity) && entity > 0) {
 				if (bChoose[client] == true) {
 					bChoose[client] = false;
+					if (IsValidEntity(iChoose[client]) && iChoose[client] != 0) {
+						RemoveEdict(iChoose[client]);
+					}
+					iChoose[client] = 0;
+					iChooseTarget[client] = 0;
 					CloseHandle(hChoose[client]);
 					ReplyToCommand(client, "[SM] Stopped choosing!");
 				}
@@ -1398,6 +1441,11 @@ stock void ent_trace(int client, float startpos[3], float startang[3], float end
 		if (bMove[client] == false) {
 			if (bChoose[client] == true) {
 				bChoose[client] = false;
+				if (IsValidEntity(iChoose[client]) && iChoose[client] != 0) {
+					RemoveEdict(iChoose[client]);
+				}
+				iChoose[client] = 0;
+				iChooseTarget[client] = 0;
 				CloseHandle(hChoose[client]);
 				ReplyToCommand(client, "[SM] Stopped choosing!");
 			}
@@ -1426,8 +1474,8 @@ stock void ent_trace(int client, float startpos[3], float startang[3], float end
 		}
 	}
 	else if (StrEqual(action, "choose", false)) {
-		if (!StrEqual(value, "")) {
-			if (bChoose[client] == false) {
+		if (bChoose[client] == false) {
+			if (!StrEqual(value, "")) {
 				char dir[256]; BuildPath(Path_SM, dir, sizeof(dir), DATA_DIR);
 				if (!DirExists(dir)) {
 					CreateDirectory(dir, 0);
@@ -1447,29 +1495,31 @@ stock void ent_trace(int client, float startpos[3], float startang[3], float end
 					ReplyToCommand(client, "[SM] %s doesn't exist!", filename);
 				}
 			}
-		}
-		else {
-			if (bChoose[client] == true) {
-				if (bShift[client] == true) {
-					bShift[client] = false;
-					iShift[client] = 0;
-					iShiftMode[client] = 0;
-					ReplyToCommand(client, "[SM] Stopped shifting.");
-				}
-				if (bMove[client] == true) {
-					DeleteTempEnts(client);
-					bMove[client] = false;
-					iMoveMode[client] = 0;
-					ReplyToCommand(client, "[SM] Stopped moving!");
-				}
-				bChoose[client] = false;
-				iChoose[client] = 0;
-				CloseHandle(hChoose[client]);
-				ReplyToCommand(client, "[SM] Stopped choosing!");
-			}
 			else {
 				ReplyToCommand(client, "[SM] choose <filename>");
 			}
+		}
+		else {
+			if (bShift[client] == true) {
+				bShift[client] = false;
+				iShift[client] = 0;
+				iShiftMode[client] = 0;
+				ReplyToCommand(client, "[SM] Stopped shifting.");
+			}
+			if (bMove[client] == true) {
+				DeleteTempEnts(client);
+				bMove[client] = false;
+				iMoveMode[client] = 0;
+				ReplyToCommand(client, "[SM] Stopped moving!");
+			}
+			bChoose[client] = false;
+			if (IsValidEntity(iChoose[client]) && iChoose[client] != 0) {
+				RemoveEdict(iChoose[client]);
+			}
+			iChoose[client] = 0;
+			iChooseTarget[client] = 0;
+			CloseHandle(hChoose[client]);
+			ReplyToCommand(client, "[SM] Stopped choosing!");
 		}
 	}
 }
