@@ -38,7 +38,7 @@ public Plugin myinfo =  {
 	name = "SM_Fire", 
 	author = "pear", 
 	description = "entity debugging", 
-	version = "1.6.3", 
+	version = "1.6.5", 
 	url = ""
 };
 
@@ -104,7 +104,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float veloc
 			if (!(lastbuttons[client] & button)) {
 				if (button == IN_SPEED && bMove[client] == true) {
 					if (iMoveTarget[client] > 0 && IsValidEntity(iMoveTarget[client])) {
-						float org[3]; GetEntPropVector(iMoveTarget[client], Prop_Data, "m_vecOrigin", org);
+						float entorg[3]; GetEntPropVector(iMoveTarget[client], Prop_Data, "m_vecOrigin", entorg);
+						float entang[3]; GetEntPropVector(iMoveTarget[client], Prop_Data, "m_angRotation", entang);
 						if (iMoveMode[client] == 1) {
 							char model[256]; GetEntPropString(iMove[client], Prop_Data, "m_ModelName", model, sizeof(model));
 							char name[256]; GetEntPropString(iMove[client], Prop_Data, "m_iName", name, sizeof(name));
@@ -114,7 +115,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float veloc
 							DispatchKeyValue(prop, "targetname", name);
 							DispatchKeyValue(prop, "solid", "6");
 							DispatchSpawn(prop);
-							TeleportEntity(prop, org, NULL_VECTOR, NULL_VECTOR);
+							TeleportEntity(prop, entorg, entang, NULL_VECTOR);
 							int red, green, blue, alpha;
 							GetEntityRenderColor(iMove[client], red, green, blue, alpha);
 							SetEntityRenderColor(prop, red, green, blue, alpha);
@@ -123,7 +124,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float veloc
 							iMove[client] = prop;
 						}
 						else {
-							TeleportEntity(iMove[client], org, NULL_VECTOR, NULL_VECTOR);
+							TeleportEntity(iMove[client], entorg, entang, NULL_VECTOR);
 						}
 						DeleteTempEnts(client);
 						CreateTempEnts(client, iMove[client]);
@@ -1121,6 +1122,7 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 		if (multiple == false) {
 			char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
 			if (StrEqual(ename, "player")) {
+				int num;
 				for (int e = 1; e <= GetMaxEntities(); e++) {
 					if (IsValidEntity(e)) {
 						char tname[128]; GetEntPropString(e, Prop_Data, "m_iName", tname, sizeof(tname));
@@ -1129,9 +1131,16 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 						if (StrContains(tname, buffer) == 0) {
 							if (e != -1) {
 								RemoveEdict(e);
+								num++;
 							}
 						}
 					}
+				}
+				if (num > 0) {
+					ReplyToCommand(client, "[SM] %i props cleared from %N", num, itarget);
+				}
+				else {
+					ReplyToCommand(client, "[SM] No props found for %N!", itarget);
 				}
 			}
 			else {
@@ -1476,6 +1485,18 @@ stock void ent_trace(int client, float startpos[3], float startang[3], float end
 	else if (StrEqual(action, "choose", false)) {
 		if (bChoose[client] == false) {
 			if (!StrEqual(value, "")) {
+				if (bShift[client] == true) {
+					bShift[client] = false;
+					iShift[client] = 0;
+					iShiftMode[client] = 0;
+					ReplyToCommand(client, "[SM] Stopped shifting.");
+				}
+				if (bMove[client] == true) {
+					DeleteTempEnts(client);
+					bMove[client] = false;
+					iMoveMode[client] = 0;
+					ReplyToCommand(client, "[SM] Stopped moving!");
+				}
 				char dir[256]; BuildPath(Path_SM, dir, sizeof(dir), DATA_DIR);
 				if (!DirExists(dir)) {
 					CreateDirectory(dir, 0);
@@ -1500,18 +1521,6 @@ stock void ent_trace(int client, float startpos[3], float startang[3], float end
 			}
 		}
 		else {
-			if (bShift[client] == true) {
-				bShift[client] = false;
-				iShift[client] = 0;
-				iShiftMode[client] = 0;
-				ReplyToCommand(client, "[SM] Stopped shifting.");
-			}
-			if (bMove[client] == true) {
-				DeleteTempEnts(client);
-				bMove[client] = false;
-				iMoveMode[client] = 0;
-				ReplyToCommand(client, "[SM] Stopped moving!");
-			}
 			bChoose[client] = false;
 			if (IsValidEntity(iChoose[client]) && iChoose[client] != 0) {
 				RemoveEdict(iChoose[client]);
