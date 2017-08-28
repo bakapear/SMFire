@@ -129,7 +129,42 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float veloc
 						CreateTempEnts(client, iMove[client]);
 					}
 				}
-				else if (button == IN_SPEED && bChoose[client] == true) {
+				if (button == IN_SPEED && bShift[client] == true) {
+					char model[256]; GetEntPropString(iShift[client], Prop_Data, "m_ModelName", model, sizeof(model));
+					char name[256]; GetEntPropString(iShift[client], Prop_Data, "m_iName", name, sizeof(name));
+					float entorg[3]; GetEntPropVector(iShift[client], Prop_Data, "m_vecOrigin", entorg);
+					float entang[3]; GetEntPropVector(iShift[client], Prop_Data, "m_angRotation", entang);
+					PrecacheModel(model);
+					int prop = CreateEntityByName("prop_dynamic");
+					DispatchKeyValue(prop, "model", model);
+					DispatchKeyValue(prop, "targetname", name);
+					DispatchKeyValue(prop, "solid", "6");
+					DispatchSpawn(prop);
+					TeleportEntity(prop, entorg, entang, NULL_VECTOR);
+					int red, green, blue, alpha;
+					GetEntityRenderColor(iShift[client], red, green, blue, alpha);
+					SetEntityRenderColor(prop, red, green, blue, alpha);
+					SetEntityRenderMode(prop, GetEntityRenderMode(iShift[client]));
+					SetEntityRenderFx(prop, GetEntityRenderFx(iShift[client]));
+				}
+				if (button == IN_SPEED && bChoose[client] == true) {
+					char model[256]; GetEntPropString(iChoose[client], Prop_Data, "m_ModelName", model, sizeof(model));
+					char name[256]; GetEntPropString(iChoose[client], Prop_Data, "m_iName", name, sizeof(name));
+					float entorg[3]; GetEntPropVector(iChoose[client], Prop_Data, "m_vecOrigin", entorg);
+					float entang[3]; GetEntPropVector(iChoose[client], Prop_Data, "m_angRotation", entang);
+					PrecacheModel(model);
+					int prop = CreateEntityByName("prop_dynamic");
+					DispatchKeyValue(prop, "model", model);
+					DispatchKeyValue(prop, "targetname", name);
+					DispatchKeyValue(prop, "solid", "6");
+					DispatchSpawn(prop);
+					TeleportEntity(prop, entorg, entang, NULL_VECTOR);
+					SetEntityRenderColor(prop, 255, 255, 255, 255);
+					SetEntityRenderMode(prop, GetEntityRenderMode(iChoose[client]));
+					SetEntityRenderFx(prop, GetEntityRenderFx(iChoose[client]));
+					iChooseTarget[client] = prop;
+				}
+				if (button == IN_WALK && bChoose[client] == true) {
 					char line[512];
 					if (IsEndOfFile(hChoose[client])) {
 						FileSeek(hChoose[client], 0, SEEK_SET);
@@ -160,41 +195,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float veloc
 					}
 					CloseHandle(trace);
 					iChoose[client] = prop;
-				}
-				else if (button == IN_SPEED && bShift[client] == true) {
-					char model[256]; GetEntPropString(iShift[client], Prop_Data, "m_ModelName", model, sizeof(model));
-					char name[256]; GetEntPropString(iShift[client], Prop_Data, "m_iName", name, sizeof(name));
-					float entorg[3]; GetEntPropVector(iShift[client], Prop_Data, "m_vecOrigin", entorg);
-					float entang[3]; GetEntPropVector(iShift[client], Prop_Data, "m_angRotation", entang);
-					PrecacheModel(model);
-					int prop = CreateEntityByName("prop_dynamic");
-					DispatchKeyValue(prop, "model", model);
-					DispatchKeyValue(prop, "targetname", name);
-					DispatchKeyValue(prop, "solid", "6");
-					DispatchSpawn(prop);
-					TeleportEntity(prop, entorg, entang, NULL_VECTOR);
-					int red, green, blue, alpha;
-					GetEntityRenderColor(iShift[client], red, green, blue, alpha);
-					SetEntityRenderColor(prop, red, green, blue, alpha);
-					SetEntityRenderMode(prop, GetEntityRenderMode(iShift[client]));
-					SetEntityRenderFx(prop, GetEntityRenderFx(iShift[client]));
-				}
-				if (button == IN_WALK && bChoose[client] == true) {
-					char model[256]; GetEntPropString(iChoose[client], Prop_Data, "m_ModelName", model, sizeof(model));
-					char name[256]; GetEntPropString(iChoose[client], Prop_Data, "m_iName", name, sizeof(name));
-					float entorg[3]; GetEntPropVector(iChoose[client], Prop_Data, "m_vecOrigin", entorg);
-					float entang[3]; GetEntPropVector(iChoose[client], Prop_Data, "m_angRotation", entang);
-					PrecacheModel(model);
-					int prop = CreateEntityByName("prop_dynamic");
-					DispatchKeyValue(prop, "model", model);
-					DispatchKeyValue(prop, "targetname", name);
-					DispatchKeyValue(prop, "solid", "6");
-					DispatchSpawn(prop);
-					TeleportEntity(prop, entorg, entang, NULL_VECTOR);
-					SetEntityRenderColor(prop, 255, 255, 255, 255);
-					SetEntityRenderMode(prop, GetEntityRenderMode(iChoose[client]));
-					SetEntityRenderFx(prop, GetEntityRenderFx(iChoose[client]));
-					iChooseTarget[client] = prop;
 				}
 			}
 		}
