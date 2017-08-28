@@ -36,7 +36,7 @@ public Plugin myinfo =  {
 	name = "SM_Fire", 
 	author = "pear", 
 	description = "entity debugging", 
-	version = "1.6.2", 
+	version = "1.6.3", 
 	url = ""
 };
 
@@ -140,6 +140,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float veloc
 					DispatchKeyValue(prop, "targetname", buffer);
 					DispatchKeyValue(prop, "solid", "6");
 					DispatchSpawn(prop);
+					SetEntityRenderColor(prop, 255, 255, 255, 100);
 					if (iChoose[client] > 0) {
 						float entorg[3]; GetEntPropVector(iChoose[client], Prop_Data, "m_vecOrigin", entorg);
 						RemoveEdict(iChoose[client]);
@@ -203,6 +204,24 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float veloc
 				entang[1] = playerang[1] + iShiftMode[client];
 			}
 			TeleportEntity(iShift[client], endpos, entang, NULL_VECTOR);
+			CloseHandle(trace);
+		}
+		else {
+			bShift[client] = false;
+			iShift[client] = 0;
+			iShiftMode[client] = 0;
+			ReplyToCommand(client, "[SM] Stopped shifting.");
+		}
+	}
+	if (bChoose[client] == true && iChoose[client] != 0 && IsValidEntity(iChoose[client])) {
+		if (IsPlayerAlive(client)) {
+			float playerang[3]; GetClientEyeAngles(client, playerang);
+			float playerorg[3]; GetClientEyePosition(client, playerorg);
+			float entorg[3]; GetEntPropVector(iChoose[client], Prop_Data, "m_vecOrigin", entorg);
+			float entang[3]; GetEntPropVector(iChoose[client], Prop_Data, "m_angRotation", entang);
+			Handle trace = TR_TraceRayFilterEx(playerorg, playerang, MASK_SHOT, RayType_Infinite, filter_multiple, client);
+			float endpos[3]; TR_GetEndPosition(endpos, trace);
+			TeleportEntity(iChoose[client], endpos, entang, NULL_VECTOR);
 			CloseHandle(trace);
 		}
 		else {
@@ -1023,7 +1042,7 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 								PrecacheModel(part[1]);
 								int prop = CreateEntityByName("prop_dynamic");
 								DispatchKeyValue(prop, "model", part[1]);
-								DispatchKeyValue(prop, "targetname", buffer);
+								DispatchKeyValue(prop, "targetname", name);
 								DispatchKeyValue(prop, "solid", part[3]);
 								DispatchKeyValue(prop, "modelscale", part[4]);
 								DispatchSpawn(prop);
@@ -1444,6 +1463,7 @@ stock void ent_trace(int client, float startpos[3], float startang[3], float end
 					ReplyToCommand(client, "[SM] Stopped moving!");
 				}
 				bChoose[client] = false;
+				iChoose[client] = 0;
 				CloseHandle(hChoose[client]);
 				ReplyToCommand(client, "[SM] Stopped choosing!");
 			}
