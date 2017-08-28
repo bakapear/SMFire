@@ -36,7 +36,7 @@ public Plugin myinfo =  {
 	name = "SM_Fire", 
 	author = "pear", 
 	description = "entity debugging", 
-	version = "1.6.1", 
+	version = "1.6.2", 
 	url = ""
 };
 
@@ -130,11 +130,14 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float veloc
 					ReadFileLine(hChoose[client], line, sizeof(line));
 					TrimString(line);
 					PrecacheModel(line);
+					char auth[256]; GetClientAuthId(client, AuthId_SteamID64, auth, sizeof(auth));
+					char buffer[128]; FormatEx(buffer, sizeof(buffer), "entprop_%s", auth);
 					float playerang[3]; GetClientEyeAngles(client, playerang);
 					float playerorg[3]; GetClientEyePosition(client, playerorg);
 					Handle trace = TR_TraceRayFilterEx(playerorg, playerang, MASK_SHOT, RayType_Infinite, filter_multiple, client);
 					int prop = CreateEntityByName("prop_dynamic");
 					DispatchKeyValue(prop, "model", line);
+					DispatchKeyValue(prop, "targetname", buffer);
 					DispatchKeyValue(prop, "solid", "6");
 					DispatchSpawn(prop);
 					if (iChoose[client] > 0) {
@@ -148,6 +151,24 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float veloc
 					}
 					CloseHandle(trace);
 					iChoose[client] = prop;
+				}
+				else if (button == IN_SPEED && bShift[client] == true) {
+					char model[256]; GetEntPropString(iShift[client], Prop_Data, "m_ModelName", model, sizeof(model));
+					char name[256]; GetEntPropString(iShift[client], Prop_Data, "m_iName", name, sizeof(name));
+					float entorg[3]; GetEntPropVector(iShift[client], Prop_Data, "m_vecOrigin", entorg);
+					float entang[3]; GetEntPropVector(iShift[client], Prop_Data, "m_angRotation", entang);
+					PrecacheModel(model);
+					int prop = CreateEntityByName("prop_dynamic");
+					DispatchKeyValue(prop, "model", model);
+					DispatchKeyValue(prop, "targetname", name);
+					DispatchKeyValue(prop, "solid", "6");
+					DispatchSpawn(prop);
+					TeleportEntity(prop, entorg, entang, NULL_VECTOR);
+					int red, green, blue, alpha;
+					GetEntityRenderColor(iShift[client], red, green, blue, alpha);
+					SetEntityRenderColor(prop, red, green, blue, alpha);
+					SetEntityRenderMode(prop, GetEntityRenderMode(iShift[client]));
+					SetEntityRenderFx(prop, GetEntityRenderFx(iShift[client]));
 				}
 			}
 		}
@@ -172,9 +193,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float veloc
 	}
 	if (bShift[client] == true && iShift[client] != 0 && IsValidEntity(iShift[client])) {
 		if (IsPlayerAlive(client)) {
-			if (IsValidEntity(iChoose[client]) && iChoose[client] != 0) {
-				iShift[client] = iChoose[client];
-			}
 			float playerang[3]; GetClientEyeAngles(client, playerang);
 			float playerorg[3]; GetClientEyePosition(client, playerorg);
 			float entorg[3]; GetEntPropVector(iShift[client], Prop_Data, "m_vecOrigin", entorg);
@@ -1042,6 +1060,31 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 			ReplyToCommand(client, "[SM] Only one target allowed!");
 		}
 	}
+	else if (StrEqual(action, "clearprops", false)) {
+		if (multiple == false) {
+			char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
+			if (StrEqual(ename, "player")) {
+				for (int e = 1; e <= GetMaxEntities(); e++) {
+					if (IsValidEntity(e)) {
+						char tname[128]; GetEntPropString(e, Prop_Data, "m_iName", tname, sizeof(tname));
+						char auth[256]; GetClientAuthId(itarget, AuthId_SteamID64, auth, sizeof(auth));
+						char buffer[128]; FormatEx(buffer, sizeof(buffer), "entprop_%s", auth);
+						if (StrContains(tname, buffer) == 0) {
+							if (e != -1) {
+								RemoveEdict(e);
+							}
+						}
+					}
+				}
+			}
+			else {
+				ReplyToCommand(client, "[SM] Target must be a player!");
+			}
+		}
+		else {
+			ReplyToCommand(client, "[SM] Only one target allowed!");
+		}
+	}
 	else if (StrContains(action, "m_", false) == 0) {
 		if (multiple == false) {
 			PropFieldType type;
@@ -1278,7 +1321,7 @@ stock void ent_trace(int client, float startpos[3], float startang[3], float end
 		}
 	}
 	else if (StrEqual(action, "paste", false)) {
-		if (iCopy[client] != 0) {
+		if (iCopy[client] != 0 && IsValidEntity(iCopy[client])) {
 			char model[512]; GetEntPropString(iCopy[client], Prop_Data, "m_ModelName", model, sizeof(model));
 			char tname[128]; GetEntPropString(iCopy[client], Prop_Data, "m_iName", tname, sizeof(tname));
 			float entang[3]; GetEntPropVector(iCopy[client], Prop_Data, "m_angRotation", entang);
