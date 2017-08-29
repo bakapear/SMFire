@@ -28,7 +28,7 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - {datamap manipulation}
 #### SINGLE + MULTIPLE
 - `data (full)`
-- `removeslot <0-5>`
+- `removeslot <0-5/all>`
 - `stun <duration>`
 - `setname <name>`
 - `kill`
