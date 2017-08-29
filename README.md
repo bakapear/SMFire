@@ -25,10 +25,6 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 ## ACTIONS
 #### SINGLE
 - `copy <x> <y> <z> <pitch> <yaw> <roll>`
-- `teleport <target>`
-- `saveprops <filename>`
-- `loadprops <filename>`
-- `clearprops`
 - {datamap manipulation}
 #### SINGLE + MULTIPLE
 - `data (full)`
@@ -53,6 +49,8 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - `color <R+G+B+A> [0-255]`
 - `setclip <value>`
 - `noclip (on/off)`
+- `teleport <target> [only single targets]`
+- `clearprops`
 - {tf_weapon equipping}
 - {all other ent_fire actions}
 #### AIM
@@ -70,6 +68,8 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 
 ### FILE
 - `delete <filename>
+- `saveprops <filename>`
+- `loadprops <filename>`
 
 ## DATAMAP MANIPULATION
 `sm_fire <target> <datamap> <*any>`
