@@ -38,7 +38,7 @@ public Plugin myinfo =  {
 	name = "Fire", 
 	author = "pear", 
 	description = "Entity Debugging", 
-	version = "1.7", 
+	version = "1.7.1", 
 	url = "steamcommunity.com/id/prexy"
 };
 
@@ -102,35 +102,33 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float veloc
 		int button = (1 << i);
 		if ((buttons & button)) {
 			if (!(lastbuttons[client] & button)) {
-				if (button == IN_SPEED && bMove[client] == true) {
-					if (iMoveTarget[client] > 0 && IsValidEntity(iMoveTarget[client])) {
-						float entorg[3]; GetEntPropVector(iMoveTarget[client], Prop_Data, "m_vecOrigin", entorg);
-						float entang[3]; GetEntPropVector(iMoveTarget[client], Prop_Data, "m_angRotation", entang);
-						if (iMoveMode[client] == 1) {
-							char model[256]; GetEntPropString(iMove[client], Prop_Data, "m_ModelName", model, sizeof(model));
-							char name[256]; GetEntPropString(iMove[client], Prop_Data, "m_iName", name, sizeof(name));
-							PrecacheModel(model);
-							int prop = CreateEntityByName("prop_dynamic");
-							DispatchKeyValue(prop, "model", model);
-							DispatchKeyValue(prop, "targetname", name);
-							DispatchKeyValue(prop, "solid", "6");
-							DispatchSpawn(prop);
-							TeleportEntity(prop, entorg, entang, NULL_VECTOR);
-							int red, green, blue, alpha;
-							GetEntityRenderColor(iMove[client], red, green, blue, alpha);
-							SetEntityRenderColor(prop, red, green, blue, alpha);
-							SetEntityRenderMode(prop, GetEntityRenderMode(iMove[client]));
-							SetEntityRenderFx(prop, GetEntityRenderFx(iMove[client]));
-							iMove[client] = prop;
-						}
-						else {
-							TeleportEntity(iMove[client], entorg, entang, NULL_VECTOR);
-						}
-						DeleteTempEnts(client);
-						CreateTempEnts(client, iMove[client]);
+				if (button == IN_SPEED && bMove[client] == true && iMoveTarget[client] > 0 && IsValidEntity(iMoveTarget[client])) {
+					float entorg[3]; GetEntPropVector(iMoveTarget[client], Prop_Data, "m_vecOrigin", entorg);
+					float entang[3]; GetEntPropVector(iMoveTarget[client], Prop_Data, "m_angRotation", entang);
+					if (iMoveMode[client] == 1) {
+						char model[256]; GetEntPropString(iMove[client], Prop_Data, "m_ModelName", model, sizeof(model));
+						char name[256]; GetEntPropString(iMove[client], Prop_Data, "m_iName", name, sizeof(name));
+						PrecacheModel(model);
+						int prop = CreateEntityByName("prop_dynamic");
+						DispatchKeyValue(prop, "model", model);
+						DispatchKeyValue(prop, "targetname", name);
+						DispatchKeyValue(prop, "solid", "6");
+						DispatchSpawn(prop);
+						TeleportEntity(prop, entorg, entang, NULL_VECTOR);
+						int red, green, blue, alpha;
+						GetEntityRenderColor(iMove[client], red, green, blue, alpha);
+						SetEntityRenderColor(prop, red, green, blue, alpha);
+						SetEntityRenderMode(prop, GetEntityRenderMode(iMove[client]));
+						SetEntityRenderFx(prop, GetEntityRenderFx(iMove[client]));
+						iMove[client] = prop;
 					}
+					else {
+						TeleportEntity(iMove[client], entorg, entang, NULL_VECTOR);
+					}
+					DeleteTempEnts(client);
+					CreateTempEnts(client, iMove[client]);
 				}
-				if (button == IN_SPEED && bShift[client] == true) {
+				if (button == IN_SPEED && bShift[client] == true && iShift[client] != 0 && IsValidEntity(iShift[client])) {
 					char model[256]; GetEntPropString(iShift[client], Prop_Data, "m_ModelName", model, sizeof(model));
 					char name[256]; GetEntPropString(iShift[client], Prop_Data, "m_iName", name, sizeof(name));
 					float entorg[3]; GetEntPropVector(iShift[client], Prop_Data, "m_vecOrigin", entorg);
@@ -148,7 +146,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float veloc
 					SetEntityRenderMode(prop, GetEntityRenderMode(iShift[client]));
 					SetEntityRenderFx(prop, GetEntityRenderFx(iShift[client]));
 				}
-				if (button == IN_SPEED && bChoose[client] == true) {
+				if (button == IN_SPEED && bChoose[client] == true && iChoose[client] != 0 && IsValidEntity(iChoose[client])) {
 					char model[256]; GetEntPropString(iChoose[client], Prop_Data, "m_ModelName", model, sizeof(model));
 					char name[256]; GetEntPropString(iChoose[client], Prop_Data, "m_iName", name, sizeof(name));
 					float entorg[3]; GetEntPropVector(iChoose[client], Prop_Data, "m_vecOrigin", entorg);
@@ -164,8 +162,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float veloc
 					SetEntityRenderMode(prop, GetEntityRenderMode(iChoose[client]));
 					SetEntityRenderFx(prop, GetEntityRenderFx(iChoose[client]));
 					iChooseTarget[client] = prop;
+					ReplyToCommand(client, "[SM] Spawned %i > %s", prop, model);
 				}
-				if (button == IN_WALK && bChoose[client] == true) {
+				if (button == IN_WALK && bChoose[client] == true && hChoose[client] != INVALID_HANDLE) {
 					char line[512];
 					if (IsEndOfFile(hChoose[client])) {
 						FileSeek(hChoose[client], 0, SEEK_SET);
@@ -561,6 +560,11 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 			if (StrEqual(value, "")) {
 				if (iCounter == 1)
 					ReplyToCommand(client, "[SM] removeslot <value>");
+			}
+			else if (StrEqual(value, "all")) {
+				TF2_RemoveAllWeapons(itarget);
+				if (iCounter == 1)
+					ReplyToCommand(client, "[SM] Removed all slots from target");
 			}
 			else {
 				int ivalue = StringToInt(value);
@@ -1178,14 +1182,14 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 					ReplyToCommand(client, "[SM] tf_weapon_* <index>");
 			}
 			else {
-				if (iWeapon[itarget] != 0) {
-					if (IsValidEdict(iWeapon[itarget])) {
-						RemoveEdict(iWeapon[itarget]);
-					}
-					iWeapon[itarget] = 0;
-				}
 				int ent = CreateEntityByName(action);
 				if (ent != -1 && IsValidEntity(ent)) {
+					if (iWeapon[itarget] != 0) {
+						if (IsValidEdict(iWeapon[itarget])) {
+							RemoveEdict(iWeapon[itarget]);
+						}
+						iWeapon[itarget] = 0;
+					}
 					SetEntProp(ent, Prop_Send, "m_bDisguiseWeapon", 1);
 					SetEntProp(ent, Prop_Send, "m_iItemDefinitionIndex", StringToInt(value));
 					SetEntProp(ent, Prop_Send, "m_iEntityQuality", 6);
@@ -1221,7 +1225,7 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 		}
 		if (success == true) {
 			if (iCounter == 1)
-				ReplyToCommand(client, "[SM] Triggered %s with value %s", action, value);
+				ReplyToCommand(client, "[SM] Triggered \"%s\" with value \"%s\"", action, value);
 		}
 		else {
 			if (iCounter == 1)
@@ -1256,7 +1260,7 @@ stock void ent_trace(int client, float startpos[3], float startang[3], float end
 			propang[1] = 180 + startang[1];
 			TeleportEntity(prop, endpos, propang, NULL_VECTOR);
 			SetEntityRenderMode(prop, RENDER_TRANSALPHAADD);
-			ReplyToCommand(client, "[SM] Spawned prop %s", value);
+			ReplyToCommand(client, "[SM] Spawned %i > %s", prop, value);
 		}
 	}
 	else if (StrEqual(action, "create", false)) {
@@ -1522,11 +1526,11 @@ stock void ent_file(int client, char[] action, char[] value) {
 			int check;
 			for (int e = 1; e <= GetMaxEntities(); e++) {
 				if (IsValidEntity(e)) {
-					char cname[128]; GetEntityClassname(e, cname, sizeof(cname));
+					char ename[128]; GetEntityClassname(e, ename, sizeof(ename));
 					char tname[128]; GetEntPropString(e, Prop_Data, "m_iName", tname, sizeof(tname));
 					char buffer[128]; FormatEx(buffer, sizeof(buffer), "entprop_%s", auth);
 					if (StrContains(tname, buffer) == 0) {
-						if (e != -1 && StrEqual(cname, "prop_dynamic")) {
+						if (e != -1 && StrEqual(ename, "prop_dynamic")) {
 							check++;
 						}
 					}
@@ -1537,11 +1541,11 @@ stock void ent_file(int client, char[] action, char[] value) {
 				Handle filehandle = OpenFile(filepath, "w");
 				for (int e = 1; e <= GetMaxEntities(); e++) {
 					if (IsValidEntity(e)) {
-						char cname[128]; GetEntityClassname(e, cname, sizeof(cname));
+						char ename[128]; GetEntityClassname(e, ename, sizeof(ename));
 						char tname[128]; GetEntPropString(e, Prop_Data, "m_iName", tname, sizeof(tname));
 						char buffer[128]; FormatEx(buffer, sizeof(buffer), "entprop_%s", auth);
 						if (StrContains(tname, buffer) == 0) {
-							if (e != -1 && StrEqual(cname, "prop_dynamic")) {
+							if (e != -1 && StrEqual(ename, "prop_dynamic")) {
 								char model[512]; GetEntPropString(e, Prop_Data, "m_ModelName", model, sizeof(model));
 								int parent = GetEntPropEnt(e, Prop_Data, "m_hParent");
 								int solid = GetEntProp(e, Prop_Data, "m_nSolidType");
