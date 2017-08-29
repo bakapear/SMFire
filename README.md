@@ -67,7 +67,7 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - `choose <filename> [placement: +speed cycle: +walk]`
 
 ### FILE
-- `delete <filename>
+- `delete <filename>`
 - `saveprops <filename>`
 - `loadprops <filename>`
 
