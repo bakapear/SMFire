@@ -63,8 +63,8 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - `copy`
 - `paste`
 - `shift (value) [copy placement: +speed] [value - rotation offset]`
-- `move (1) [placement: +speed] [1 - copy mode]`
-- `choose <filename> [placement: +speed cycle: +walk]`
+- `move [place copy: +speed] [placement: +walk]`
+- `choose <filename> [placement: +speed] [cycle: +walk]`
 
 ### FILE
 - `delete <filename>`

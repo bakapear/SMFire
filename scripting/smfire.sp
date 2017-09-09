@@ -1,3 +1,4 @@
+#define PLUGIN_VERSION "1.7.5"
 #pragma semicolon 1
 #pragma newdecls required
 #pragma dynamic 131072
@@ -26,7 +27,6 @@ int iShiftMode[MAXPLAYERS + 1];
 int iShift[MAXPLAYERS + 1];
 int iWeapon[MAXPLAYERS + 1];
 int iMove[MAXPLAYERS + 1];
-int iMoveMode[MAXPLAYERS + 1];
 int iMoveTarget[MAXPLAYERS + 1];
 bool bMove[MAXPLAYERS + 1];
 bool bChoose[MAXPLAYERS + 1];
@@ -38,7 +38,7 @@ public Plugin myinfo =  {
 	name = "Fire", 
 	author = "pear", 
 	description = "Entity Debugging", 
-	version = "1.7.1", 
+	version = PLUGIN_VERSION, 
 	url = "steamcommunity.com/id/prexy"
 };
 
@@ -46,6 +46,7 @@ public void OnPluginStart() {
 	LoadTranslations("common.phrases");
 	RegAdminCmd("sm_fire", sm_fire, ADMFLAG_BAN, "[SM] Usage: sm_fire <target> <action> <value>");
 	HookEvent("player_spawn", event_playerspawn, EventHookMode_Post);
+	HookEvent("player_death", event_playerdeath, EventHookMode_Post);
 	AddNormalSoundHook(hook_sound);
 	for (int i = 1; i <= MaxClients; i++) {
 		fHeadScale[i] = 1.0;
@@ -57,6 +58,8 @@ public void OnPluginStart() {
 }
 
 public void OnPluginEnd() {
+	UnhookEvent("player_spawn", event_playerspawn, EventHookMode_Post);
+	RemoveNormalSoundHook(hook_sound);
 	for (int e = 1; e <= GetMaxEntities(); e++) {
 		if (IsValidEntity(e)) {
 			char tname[128]; GetEntPropString(e, Prop_Data, "m_iName", tname, sizeof(tname));
@@ -102,10 +105,10 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float veloc
 		int button = (1 << i);
 		if ((buttons & button)) {
 			if (!(lastbuttons[client] & button)) {
-				if (button == IN_SPEED && bMove[client] == true && iMoveTarget[client] > 0 && IsValidEntity(iMoveTarget[client])) {
+				if (button == IN_WALK && bMove[client] == true && iMoveTarget[client] > 0 && IsValidEntity(iMoveTarget[client])) {
 					float entorg[3]; GetEntPropVector(iMoveTarget[client], Prop_Data, "m_vecOrigin", entorg);
 					float entang[3]; GetEntPropVector(iMoveTarget[client], Prop_Data, "m_angRotation", entang);
-					if (iMoveMode[client] == 1) {
+					if (button == IN_SPEED) {
 						char model[256]; GetEntPropString(iMove[client], Prop_Data, "m_ModelName", model, sizeof(model));
 						char name[256]; GetEntPropString(iMove[client], Prop_Data, "m_iName", name, sizeof(name));
 						PrecacheModel(model);
@@ -221,7 +224,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float veloc
 		else {
 			DeleteTempEnts(client);
 			bMove[client] = false;
-			iMoveMode[client] = 0;
 			ReplyToCommand(client, "[SM] Stopped moving!");
 		}
 	}
@@ -275,6 +277,31 @@ public Action event_playerspawn(Handle event, char[] name, bool dontbroadcast) {
 	int client = GetClientOfUserId(GetEventInt(event, "userid"));
 	if (bThirdperson[client] == true) {
 		CreateTimer(0.1, spawn_thirdperson, client);
+	}
+}
+
+public Action event_playerdeath(Handle event, char[] name, bool dontbroadcast) {
+	int client = GetClientOfUserId(GetEventInt(event, "userid"));
+	if (bShift[client] == true) {
+		bShift[client] = false;
+		iShift[client] = 0;
+		iShiftMode[client] = 0;
+		ReplyToCommand(client, "[SM] Stopped shifting.");
+	}
+	if (bMove[client] == true) {
+		DeleteTempEnts(client);
+		bMove[client] = false;
+		ReplyToCommand(client, "[SM] Stopped moving!");
+	}
+	if (bChoose[client] == true) {
+		bChoose[client] = false;
+		if (IsValidEntity(iChoose[client]) && iChoose[client] != 0) {
+			RemoveEdict(iChoose[client]);
+		}
+		iChoose[client] = 0;
+		iChooseTarget[client] = 0;
+		CloseHandle(hChoose[client]);
+		ReplyToCommand(client, "[SM] Stopped choosing!");
 	}
 }
 
@@ -1384,7 +1411,6 @@ stock void ent_trace(int client, float startpos[3], float startang[3], float end
 				if (bMove[client] == true) {
 					DeleteTempEnts(client);
 					bMove[client] = false;
-					iMoveMode[client] = 0;
 					ReplyToCommand(client, "[SM] Stopped moving!");
 				}
 				bShift[client] = true;
@@ -1425,7 +1451,6 @@ stock void ent_trace(int client, float startpos[3], float startang[3], float end
 			if (iMove[client] > 0) {
 				CreateTempEnts(client, iMove[client]);
 				bMove[client] = true;
-				iMoveMode[client] = StringToInt(value);
 				ReplyToCommand(client, "[SM] Started moving %i", iMove[client]);
 			}
 			else {
@@ -1435,7 +1460,6 @@ stock void ent_trace(int client, float startpos[3], float startang[3], float end
 		else {
 			DeleteTempEnts(client);
 			bMove[client] = false;
-			iMoveMode[client] = 0;
 			ReplyToCommand(client, "[SM] Stopped moving!");
 		}
 	}
@@ -1451,7 +1475,6 @@ stock void ent_trace(int client, float startpos[3], float startang[3], float end
 				if (bMove[client] == true) {
 					DeleteTempEnts(client);
 					bMove[client] = false;
-					iMoveMode[client] = 0;
 					ReplyToCommand(client, "[SM] Stopped moving!");
 				}
 				char dir[256]; BuildPath(Path_SM, dir, sizeof(dir), DATA_DIR);
