@@ -25,7 +25,6 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 ## ACTIONS
 #### SINGLE
 - `copy <x> <y> <z> <pitch> <yaw> <roll>`
-- {datamap manipulation}
 #### SINGLE + MULTIPLE
 - `data (full)`
 - `removeslot <0-5/all>`
@@ -52,6 +51,7 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - `teleport <target> [only single targets]`
 - `clearprops`
 - {tf_weapon equipping}
+- {datamap manipulation}
 - {all other ent_fire actions}
 #### AIM
 - `data (full)`

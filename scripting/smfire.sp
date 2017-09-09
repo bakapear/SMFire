@@ -1,4 +1,4 @@
-#define PLUGIN_VERSION "1.7.6"
+#define PLUGIN_VERSION "1.7.7"
 #pragma semicolon 1
 #pragma newdecls required
 #pragma dynamic 131072
@@ -47,6 +47,7 @@ public void OnPluginStart() {
 	RegAdminCmd("sm_fire", sm_fire, ADMFLAG_BAN, "[SM] Usage: sm_fire <target> <action> <value>");
 	HookEvent("player_spawn", event_playerspawn, EventHookMode_Post);
 	HookEvent("player_death", event_playerdeath, EventHookMode_Post);
+	HookEvent("teamplay_round_start", event_roundstart, EventHookMode_Post);
 	AddNormalSoundHook(hook_sound);
 	for (int i = 1; i <= MaxClients; i++) {
 		fHeadScale[i] = 1.0;
@@ -74,6 +75,7 @@ public void OnPluginEnd() {
 		if (IsValidEntity(iChoose[i]) && iChoose[i] != 0) {
 			RemoveEdict(iChoose[i]);
 		}
+		StopActiveActions(i);
 	}
 }
 
@@ -284,26 +286,14 @@ public Action event_playerspawn(Handle event, char[] name, bool dontbroadcast) {
 
 public Action event_playerdeath(Handle event, char[] name, bool dontbroadcast) {
 	int client = GetClientOfUserId(GetEventInt(event, "userid"));
-	if (bShift[client] == true) {
-		bShift[client] = false;
-		iShift[client] = 0;
-		iShiftMode[client] = 0;
-		ReplyToCommand(client, "[SM] Stopped shifting.");
-	}
-	if (bMove[client] == true) {
-		DeleteTempEnts(client);
-		bMove[client] = false;
-		ReplyToCommand(client, "[SM] Stopped moving!");
-	}
-	if (bChoose[client] == true) {
-		bChoose[client] = false;
-		if (IsValidEntity(iChoose[client]) && iChoose[client] != 0) {
-			RemoveEdict(iChoose[client]);
+	StopActiveActions(client);
+}
+
+public Action event_roundstart(Handle event, char[] name, bool dontbroadcast) {
+	for (int i = 1; i <= MaxClients; i++) {
+		if (IsClientInGame(i) && IsClientConnected(i)) {
+			StopActiveActions(i);
 		}
-		iChoose[client] = 0;
-		iChooseTarget[client] = 0;
-		CloseHandle(hChoose[client]);
-		ReplyToCommand(client, "[SM] Stopped choosing!");
 	}
 }
 
@@ -408,6 +398,30 @@ void DeleteTempEnts(int client) {
 				}
 			}
 		}
+	}
+}
+
+void StopActiveActions(int client) {
+	if (bShift[client] == true) {
+		bShift[client] = false;
+		iShift[client] = 0;
+		iShiftMode[client] = 0;
+		ReplyToCommand(client, "[SM] Stopped shifting.");
+	}
+	if (bMove[client] == true) {
+		DeleteTempEnts(client);
+		bMove[client] = false;
+		ReplyToCommand(client, "[SM] Stopped moving!");
+	}
+	if (bChoose[client] == true) {
+		bChoose[client] = false;
+		if (IsValidEntity(iChoose[client]) && iChoose[client] != 0) {
+			RemoveEdict(iChoose[client]);
+		}
+		iChoose[client] = 0;
+		iChooseTarget[client] = 0;
+		CloseHandle(hChoose[client]);
+		ReplyToCommand(client, "[SM] Stopped choosing!");
 	}
 }
 
@@ -553,6 +567,7 @@ stock void ent_fire(int client, char[] target, char[] action, char[] value) {
 }
 
 stock void ent_action(int client, int itarget, char[] action, char[] value, bool multiple) {
+	StopActiveActions(client);
 	iCounter++;
 	if (itarget <= 0 || !IsValidEntity(itarget)) {
 		if (iCounter == 1)
@@ -1126,81 +1141,110 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 		}
 	}
 	else if (StrContains(action, "m_", false) == 0) {
-		if (multiple == false) {
-			PropFieldType type;
-			int info = FindDataMapInfo(itarget, action, type);
-			if (info != -1) {
-				if (StrEqual(value, "")) {
-					if (type == PropField_Integer) {
-						int data = GetEntProp(itarget, Prop_Data, action);
-						ReplyToCommand(client, "\x03%i", data);
-					}
-					else if (type == PropField_Float) {
-						float data = GetEntPropFloat(itarget, Prop_Data, action);
-						ReplyToCommand(client, "\x03%.2f", data);
-					}
-					else if (type == PropField_String || type == PropField_String_T) {
-						char buffer[256];
-						GetEntPropString(itarget, Prop_Data, action, buffer, sizeof(buffer));
-						ReplyToCommand(client, "\x03%s", buffer);
-					}
-					else if (type == PropField_Vector) {
-						float vector[3];
-						GetEntPropVector(itarget, Prop_Data, action, vector);
-						ReplyToCommand(client, "\x03%.0f %.0f %.0f", vector[0], vector[1], vector[2]);
-					}
-					else if (type == PropField_Entity) {
-						int data = GetEntPropEnt(itarget, Prop_Data, action);
-						ReplyToCommand(client, "\x03%i", data);
+		PropFieldType type;
+		int info = FindDataMapInfo(itarget, action, type);
+		if (info != -1) {
+			if (StrEqual(value, "")) {
+				char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
+				if (type == PropField_Integer) {
+					int data = GetEntProp(itarget, Prop_Data, action);
+					if (StrEqual(ename, "player")) {
+						ReplyToCommand(client, "[%N] \x03%i", itarget, data);
 					}
 					else {
-						ReplyToCommand(client, "[SM] Type not supported!");
+						ReplyToCommand(client, "[%i] \x03%i", itarget, data);
+					}
+				}
+				else if (type == PropField_Float) {
+					float data = GetEntPropFloat(itarget, Prop_Data, action);
+					if (StrEqual(ename, "player")) {
+						ReplyToCommand(client, "[%N] \x03%.2f", itarget, data);
+					}
+					else {
+						ReplyToCommand(client, "[%i] \x03%.2f", itarget, data);
+					}
+				}
+				else if (type == PropField_String || type == PropField_String_T) {
+					char buffer[256];
+					GetEntPropString(itarget, Prop_Data, action, buffer, sizeof(buffer));
+					if (StrEqual(ename, "player")) {
+						ReplyToCommand(client, "[%N] \x03%s", itarget, buffer);
+					}
+					else {
+						ReplyToCommand(client, "[%i] \x03%s", itarget, buffer);
+					}
+				}
+				else if (type == PropField_Vector) {
+					float vector[3];
+					GetEntPropVector(itarget, Prop_Data, action, vector);
+					if (StrEqual(ename, "player")) {
+						ReplyToCommand(client, "[%N] \x03%.0f %.0f %.0f", itarget, vector[0], vector[1], vector[2]);
+					}
+					else {
+						ReplyToCommand(client, "[%i] \x03%.0f %.0f %.0f", itarget, vector[0], vector[1], vector[2]);
+					}
+				}
+				else if (type == PropField_Entity) {
+					int data = GetEntPropEnt(itarget, Prop_Data, action);
+					if (StrEqual(ename, "player")) {
+						ReplyToCommand(client, "[%N] \x03%i", itarget, data);
+					}
+					else {
+						ReplyToCommand(client, "[%i] \x03%i", itarget, data);
 					}
 				}
 				else {
-					if (type == PropField_Integer) {
-						SetEntProp(itarget, Prop_Data, action, StringToInt(value));
-						ReplyToCommand(client, "[SM] Set %s to %s", action, value);
-					}
-					else if (type == PropField_Float) {
-						SetEntPropFloat(itarget, Prop_Data, action, StringToFloat(value));
-						ReplyToCommand(client, "[SM] Set %s to %s", action, value);
-					}
-					else if (type == PropField_String || type == PropField_String_T) {
-						SetEntPropString(itarget, Prop_Data, action, value);
-						ReplyToCommand(client, "[SM] Set %s to %s", action, value);
-					}
-					else if (type == PropField_Vector) {
-						float vector[3]; char num[64][6];
-						ExplodeString(value, " ", num, 3, sizeof(num), false);
-						vector[0] = StringToFloat(num[0]);
-						vector[1] = StringToFloat(num[1]);
-						vector[2] = StringToFloat(num[2]);
-						SetEntPropVector(itarget, Prop_Data, action, vector);
-						ReplyToCommand(client, "[SM] Set %s to %.0f %.0f %.0f", action, vector[0], vector[1], vector[2]);
-					}
-					else if (type == PropField_Entity) {
-						if (IsValidEntity(StringToInt(value))) {
-							SetEntPropEnt(itarget, Prop_Data, action, StringToInt(value));
-							ReplyToCommand(client, "[SM] Set %s to %s", action, value);
-						}
-						else {
-							ReplyToCommand(client, "[SM] Invalid entity!", action, value);
-						}
-						
-					}
-					else {
+					if (iCounter == 1)
 						ReplyToCommand(client, "[SM] Type not supported!");
-					}
 				}
 			}
 			else {
-				ReplyToCommand(client, "[SM] %s not a datamap for target!", action);
+				if (type == PropField_Integer) {
+					SetEntProp(itarget, Prop_Data, action, StringToInt(value));
+					if (iCounter == 1)
+						ReplyToCommand(client, "[SM] Set %s to %s", action, value);
+				}
+				else if (type == PropField_Float) {
+					SetEntPropFloat(itarget, Prop_Data, action, StringToFloat(value));
+					if (iCounter == 1)
+						ReplyToCommand(client, "[SM] Set %s to %s", action, value);
+				}
+				else if (type == PropField_String || type == PropField_String_T) {
+					SetEntPropString(itarget, Prop_Data, action, value);
+					if (iCounter == 1)
+						ReplyToCommand(client, "[SM] Set %s to %s", action, value);
+				}
+				else if (type == PropField_Vector) {
+					float vector[3]; char num[64][6];
+					ExplodeString(value, " ", num, 3, sizeof(num), false);
+					vector[0] = StringToFloat(num[0]);
+					vector[1] = StringToFloat(num[1]);
+					vector[2] = StringToFloat(num[2]);
+					SetEntPropVector(itarget, Prop_Data, action, vector);
+					if (iCounter == 1)
+						ReplyToCommand(client, "[SM] Set %s to %.0f %.0f %.0f", action, vector[0], vector[1], vector[2]);
+				}
+				else if (type == PropField_Entity) {
+					if (IsValidEntity(StringToInt(value))) {
+						SetEntPropEnt(itarget, Prop_Data, action, StringToInt(value));
+						if (iCounter == 1)
+							ReplyToCommand(client, "[SM] Set %s to %s", action, value);
+					}
+					else {
+						if (iCounter == 1)
+							ReplyToCommand(client, "[SM] Invalid entity!", action, value);
+					}
+					
+				}
+				else {
+					if (iCounter == 1)
+						ReplyToCommand(client, "[SM] Type not supported!");
+				}
 			}
 		}
 		else {
 			if (iCounter == 1)
-				ReplyToCommand(client, "[SM] Only one target allowed!");
+				ReplyToCommand(client, "[SM] %s not a datamap for target!", action);
 		}
 	}
 	else if (StrContains(action, "tf_weapon", false) == 0) {
@@ -1400,25 +1444,12 @@ stock void ent_trace(int client, float startpos[3], float startang[3], float end
 	else if (StrEqual(action, "shift", false)) {
 		if (bShift[client] == false) {
 			if (IsValidEntity(entity) && entity > 0) {
-				if (bChoose[client] == true) {
-					bChoose[client] = false;
-					if (IsValidEntity(iChoose[client]) && iChoose[client] != 0) {
-						RemoveEdict(iChoose[client]);
-					}
-					iChoose[client] = 0;
-					iChooseTarget[client] = 0;
-					CloseHandle(hChoose[client]);
-					ReplyToCommand(client, "[SM] Stopped choosing!");
-				}
-				if (bMove[client] == true) {
-					DeleteTempEnts(client);
-					bMove[client] = false;
-					ReplyToCommand(client, "[SM] Stopped moving!");
-				}
+				StopActiveActions(client);
 				bShift[client] = true;
 				iShift[client] = entity;
 				iShiftMode[client] = StringToInt(value);
 				ReplyToCommand(client, "[SM] Started shifting %i", iShift[client]);
+				ReplyToCommand(client, "[SM] Copy: +speed");
 			}
 			else {
 				ReplyToCommand(client, "[SM] Invalid entity!");
@@ -1433,27 +1464,19 @@ stock void ent_trace(int client, float startpos[3], float startang[3], float end
 	}
 	else if (StrEqual(action, "move", false)) {
 		if (bMove[client] == false) {
-			if (bChoose[client] == true) {
-				bChoose[client] = false;
-				if (IsValidEntity(iChoose[client]) && iChoose[client] != 0) {
-					RemoveEdict(iChoose[client]);
-				}
-				iChoose[client] = 0;
-				iChooseTarget[client] = 0;
-				CloseHandle(hChoose[client]);
-				ReplyToCommand(client, "[SM] Stopped choosing!");
-			}
-			if (bShift[client] == true) {
-				bShift[client] = false;
-				iShift[client] = 0;
-				iShiftMode[client] = 0;
-				ReplyToCommand(client, "[SM] Stopped shifting.");
-			}
+			StopActiveActions(client);
 			iMove[client] = GetAimEntity(client);
+			char ename[256]; GetEntityClassname(entity, ename, sizeof(ename));
 			if (iMove[client] > 0) {
-				CreateTempEnts(client, iMove[client]);
-				bMove[client] = true;
-				ReplyToCommand(client, "[SM] Started moving %i", iMove[client]);
+				if (StrEqual(ename, "prop_dynamic")) {
+					CreateTempEnts(client, iMove[client]);
+					bMove[client] = true;
+					ReplyToCommand(client, "[SM] Started moving %i", iMove[client]);
+					ReplyToCommand(client, "[SM] Move: +walk | Copy: +speed");
+				}
+				else {
+					ReplyToCommand(client, "[SM] Target must be a prop!");
+				}
 			}
 			else {
 				ReplyToCommand(client, "[SM] Invalid entity!");
@@ -1468,17 +1491,7 @@ stock void ent_trace(int client, float startpos[3], float startang[3], float end
 	else if (StrEqual(action, "choose", false)) {
 		if (bChoose[client] == false) {
 			if (!StrEqual(value, "")) {
-				if (bShift[client] == true) {
-					bShift[client] = false;
-					iShift[client] = 0;
-					iShiftMode[client] = 0;
-					ReplyToCommand(client, "[SM] Stopped shifting.");
-				}
-				if (bMove[client] == true) {
-					DeleteTempEnts(client);
-					bMove[client] = false;
-					ReplyToCommand(client, "[SM] Stopped moving!");
-				}
+				StopActiveActions(client);
 				char dir[256]; BuildPath(Path_SM, dir, sizeof(dir), DATA_DIR);
 				if (!DirExists(dir)) {
 					CreateDirectory(dir, 0);
@@ -1493,6 +1506,7 @@ stock void ent_trace(int client, float startpos[3], float startang[3], float end
 					hChoose[client] = OpenFile(filepath, "r");
 					bChoose[client] = true;
 					ReplyToCommand(client, "[SM] Choosing props from %s", filename);
+					ReplyToCommand(client, "[SM] Cyle: +walk | Place: +speed");
 				}
 				else {
 					ReplyToCommand(client, "[SM] %s doesn't exist!", filename);
