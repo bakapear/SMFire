@@ -16,6 +16,7 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - !red
 - !blue
 - !bots
+- !select
 - #targetname
 - classname
 #### SPECIAL
@@ -65,6 +66,7 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - `shift (value) [copy placement: +speed] [value - rotation offset]`
 - `move [place copy: +speed] [placement: +walk]`
 - `choose <filename> [placement: +speed] [cycle: +walk]`
+- `select (clear)`
 
 ### FILE
 - `delete <filename>`
