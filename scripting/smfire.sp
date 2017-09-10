@@ -525,10 +525,10 @@ stock void ent_fire(int client, char[] target, char[] action, char[] value) {
 					num++;
 				}
 				if (num > 0) {
-					ReplyToCommand(client, "[SM] %i entities printed to console.", num);
+					ReplyToCommand(client, "[SM] %i props printed to console.", num);
 				}
 				else {
-					ReplyToCommand(client, "[SM] No entites selected!");
+					ReplyToCommand(client, "[SM] No props selected!");
 				}
 			}
 		}
@@ -1562,20 +1562,23 @@ stock void ent_trace(int client, float startpos[3], float startang[3], float end
 			aSelect[client] = CreateArray();
 			bSelect[client] = true;
 		}
-		if (IsValidEntity(entity) && entity > 0) {
-			if (StrEqual(value, "clear")) {
-				int num;
-				for (int i; i < GetArraySize(aSelect[client]); i++) {
-					if (entity == GetArrayCell(aSelect[client], i)) {
-						SetEntityRenderMode(entity, RENDER_TRANSALPHAADD);
-						SetEntityRenderFx(GetArrayCell(aSelect[client], i), RENDERFX_NONE);
-						RemoveFromArray(aSelect[client], i);
-						num++;
-					}
-				}
-				ReplyToCommand(client, "[SM] Cleared %i selected props!", num);
+		if (StrEqual(value, "clear")) {
+			int num;
+			for (int i; i < GetArraySize(aSelect[client]); i++) {
+					SetEntityRenderMode(GetArrayCell(aSelect[client], i), RENDER_TRANSALPHAADD);
+					SetEntityRenderFx(GetArrayCell(aSelect[client], i), RENDERFX_NONE);
+					RemoveFromArray(aSelect[client], i);
+					num++;
+			}
+			if(num > 0) {
+			ReplyToCommand(client, "[SM] Cleared %i selected props!", num);
 			}
 			else {
+			ReplyToCommand(client, "[SM] No props selected!");
+			}
+		}
+		else {
+			if (IsValidEntity(entity) && entity > 0) {
 				char ename[256]; GetEntityClassname(entity, ename, sizeof(ename));
 				if (StrEqual(ename, "prop_dynamic")) {
 					int index = -1;
@@ -1587,23 +1590,23 @@ stock void ent_trace(int client, float startpos[3], float startang[3], float end
 					if (index != -1) {
 						SetEntityRenderMode(entity, RENDER_TRANSALPHAADD);
 						SetEntityRenderFx(GetArrayCell(aSelect[client], index), RENDERFX_NONE);
-						RemoveFromArray(aSelect[client], index);
 						ReplyToCommand(client, "[SM] Deselected %i", GetArrayCell(aSelect[client], index));
+						RemoveFromArray(aSelect[client], index);
 					}
 					else {
-						SetEntityRenderMode(entity, RENDER_NONE);
+						SetEntityRenderMode(entity, RENDER_NORMAL);
 						SetEntityRenderFx(entity, RENDERFX_HOLOGRAM);
-						PushArrayCell(aSelect[client], entity);
 						ReplyToCommand(client, "[SM] Selected %i", entity);
+						PushArrayCell(aSelect[client], entity);
 					}
 				}
 				else {
 					ReplyToCommand(client, "[SM] Target must be a prop!");
 				}
 			}
-		}
-		else {
-			ReplyToCommand(client, "[SM] Invalid entity!");
+			else {
+				ReplyToCommand(client, "[SM] Invalid entity!");
+			}
 		}
 	}
 }
