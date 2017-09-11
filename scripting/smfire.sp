@@ -1,4 +1,4 @@
-#define PLUGIN_VERSION "1.7.9"
+#define PLUGIN_VERSION "1.8"
 #pragma semicolon 1
 #pragma newdecls required
 #pragma dynamic 131072
@@ -518,30 +518,47 @@ stock void ent_fire(int client, char[] target, char[] action, char[] value) {
 		}
 	}
 	else if (StrEqual(target, "!select", false)) {
-		if (StrEqual(value, "data")) {
+		if (StrEqual(action, "data")) {
 			for (int i; i < GetArraySize(aSelect[client]); i++) {
 				if (IsValidEntity(GetArrayCell(aSelect[client], i)) && GetArrayCell(aSelect[client], i) > 0) {
 					PrintToConsole(client, "%i. > %i", i, GetArrayCell(aSelect[client], i));
 					num++;
 				}
-				if (num > 0) {
-					ReplyToCommand(client, "[SM] %i props printed to console.", num);
-				}
-				else {
-					ReplyToCommand(client, "[SM] No props selected!");
-				}
+			}
+			if (num == 0) {
+				ReplyToCommand(client, "[SM] No props selected!");
 			}
 		}
-		else {
-			for (int i; i < GetArraySize(aSelect[client]); i++) {
-				if (IsValidEntity(GetArrayCell(aSelect[client], i)) && GetArrayCell(aSelect[client], i) > 0) {
-					int itarget = GetArrayCell(aSelect[client], i);
-					ent_action(client, itarget, action, value, true);
+		else if (StrEqual(action, "clear")) {
+			while (GetArraySize(aSelect[client]) != 0) {
+				for (int i; i < GetArraySize(aSelect[client]); i++) {
+					SetEntityRenderFx(GetArrayCell(aSelect[client], i), view_as<RenderFx>(0));
+					RemoveFromArray(aSelect[client], i);
 					num++;
 				}
 			}
-			if (num == 0) {
-				ReplyToCommand(client, "[SM] No entites selected!");
+			if (num > 0) {
+				ReplyToCommand(client, "[SM] Deselected %i props!", num);
+			}
+			else {
+				ReplyToCommand(client, "[SM] No props selected!");
+			}
+		}
+		else {
+			if (GetArraySize(aSelect[client]) == 0) {
+				ReplyToCommand(client, "[SM] No props selected!");
+			}
+			else {
+				for (int i; i < GetArraySize(aSelect[client]); i++) {
+					if (IsValidEntity(GetArrayCell(aSelect[client], i)) && GetArrayCell(aSelect[client], i) > 0) {
+						int itarget = GetArrayCell(aSelect[client], i);
+						ent_action(client, itarget, action, value, true);
+						num++;
+					}
+				}
+				if (num == 0) {
+					ReplyToCommand(client, "[SM] No props selected!");
+				}
 			}
 		}
 	}
@@ -1562,57 +1579,65 @@ stock void ent_trace(int client, float startpos[3], float startang[3], float end
 			aSelect[client] = CreateArray();
 			bSelect[client] = true;
 		}
-		if (StrEqual(value, "clear")) {
-			int num;
-			for (int i; i < GetArraySize(aSelect[client]); i++) {
-					SetEntityRenderMode(GetArrayCell(aSelect[client], i), RENDER_TRANSALPHAADD);
-					SetEntityRenderFx(GetArrayCell(aSelect[client], i), RENDERFX_NONE);
-					RemoveFromArray(aSelect[client], i);
-					num++;
-			}
-			if(num > 0) {
-			ReplyToCommand(client, "[SM] Cleared %i selected props!", num);
+		if (IsValidEntity(entity) && entity > 0) {
+			char ename[256]; GetEntityClassname(entity, ename, sizeof(ename));
+			if (StrEqual(ename, "prop_dynamic")) {
+				int index = -1;
+				for (int i; i < GetArraySize(aSelect[client]); i++) {
+					if (entity == GetArrayCell(aSelect[client], i)) {
+						index = i;
+					}
+				}
+				if (index != -1) {
+					SetEntityRenderMode(entity, RENDER_TRANSALPHAADD);
+					SetEntityRenderFx(GetArrayCell(aSelect[client], index), view_as<RenderFx>(0));
+					ReplyToCommand(client, "[SM] Deselected %i", GetArrayCell(aSelect[client], index));
+					RemoveFromArray(aSelect[client], index);
+				}
+				else {
+					SetEntityRenderFx(entity, view_as<RenderFx>(4));
+					ReplyToCommand(client, "[SM] Selected %i", entity);
+					PushArrayCell(aSelect[client], entity);
+				}
 			}
 			else {
-			ReplyToCommand(client, "[SM] No props selected!");
+				ReplyToCommand(client, "[SM] Target must be a prop!");
 			}
 		}
 		else {
-			if (IsValidEntity(entity) && entity > 0) {
-				char ename[256]; GetEntityClassname(entity, ename, sizeof(ename));
-				if (StrEqual(ename, "prop_dynamic")) {
-					int index = -1;
-					for (int i; i < GetArraySize(aSelect[client]); i++) {
-						if (entity == GetArrayCell(aSelect[client], i)) {
-							index = i;
-						}
-					}
-					if (index != -1) {
-						SetEntityRenderMode(entity, RENDER_TRANSALPHAADD);
-						SetEntityRenderFx(GetArrayCell(aSelect[client], index), RENDERFX_NONE);
-						ReplyToCommand(client, "[SM] Deselected %i", GetArrayCell(aSelect[client], index));
-						RemoveFromArray(aSelect[client], index);
-					}
-					else {
-						SetEntityRenderMode(entity, RENDER_NORMAL);
-						SetEntityRenderFx(entity, RENDERFX_HOLOGRAM);
-						ReplyToCommand(client, "[SM] Selected %i", entity);
-						PushArrayCell(aSelect[client], entity);
-					}
-				}
-				else {
-					ReplyToCommand(client, "[SM] Target must be a prop!");
-				}
-			}
-			else {
-				ReplyToCommand(client, "[SM] Invalid entity!");
-			}
+			ReplyToCommand(client, "[SM] Invalid entity!");
 		}
 	}
 }
 
 stock void ent_file(int client, char[] action, char[] value) {
-	if (StrEqual(action, "delete", false)) {
+	if (StrEqual(action, "create", false)) {
+		if (StrEqual(value, "")) {
+			ReplyToCommand(client, "[SM] create <filename>");
+		}
+		else {
+			char dir[256]; BuildPath(Path_SM, dir, sizeof(dir), DATA_DIR);
+			if (!DirExists(dir)) {
+				CreateDirectory(dir, 0);
+			}
+			char buffer[256]; FormatEx(buffer, sizeof(buffer), "%s/%s.cfg", DATA_DIR, value);
+			char filepath[256]; BuildPath(Path_SM, filepath, sizeof(filepath), buffer);
+			if (!FileExists(filepath)) {
+				Handle filehandle = OpenFile(filepath, "w");
+				if (filehandle == null) {
+					ReplyToCommand(client, "[SM] Error creating file!");
+				}
+				else {
+					ReplyToCommand(client, "[SM] Created %s!", buffer);
+				}
+				CloseHandle(filehandle);
+			}
+			else {
+				ReplyToCommand(client, "[SM] File %s already exists!", buffer);
+			}
+		}
+	}
+	else if (StrEqual(action, "delete", false)) {
 		if (StrEqual(value, "")) {
 			ReplyToCommand(client, "[SM] delete <filename>");
 		}
@@ -1620,8 +1645,65 @@ stock void ent_file(int client, char[] action, char[] value) {
 			char buffer[256]; FormatEx(buffer, sizeof(buffer), "%s/%s.cfg", DATA_DIR, value);
 			char filepath[256]; BuildPath(Path_SM, filepath, sizeof(filepath), buffer);
 			if (FileExists(filepath)) {
-				DeleteFile(filepath);
-				ReplyToCommand(client, "[SM] Deleted %s!", buffer);
+				bool deleted = DeleteFile(filepath);
+				if (deleted == true) {
+					ReplyToCommand(client, "[SM] Deleted %s!", buffer);
+				}
+				else {
+					ReplyToCommand(client, "[SM] Error deleting file!");
+				}
+			}
+			else {
+				ReplyToCommand(client, "[SM] File %s doesn't exist!", buffer);
+			}
+		}
+	}
+	else if (StrEqual(action, "print", false)) {
+		if (StrEqual(value, "")) {
+			ReplyToCommand(client, "[SM] print <filename>");
+		}
+		else {
+			char buffer[256]; FormatEx(buffer, sizeof(buffer), "%s/%s.cfg", DATA_DIR, value);
+			char filepath[256]; BuildPath(Path_SM, filepath, sizeof(filepath), buffer);
+			if (FileExists(filepath)) {
+				int num;
+				char line[512];
+				Handle filehandle = OpenFile(filepath, "r");
+				while (!IsEndOfFile(filehandle) && ReadFileLine(filehandle, line, sizeof(line))) {
+					num++;
+					TrimString(line);
+					PrintToConsole(client, "|%i| %s", num, line);
+				}
+				if (num == 0) {
+					ReplyToCommand(client, "[SM] File %s is empty", buffer);
+				}
+				else {
+					ReplyToCommand(client, "[SM] Printed %i lines from %s", num, buffer);
+				}
+			}
+			else {
+				ReplyToCommand(client, "[SM] File %s doesn't exist!", buffer);
+			}
+		}
+	}
+	else if (StrEqual(action, "write", false)) {
+		char part[1024][6]; ExplodeString(value, " ", part, 2, sizeof(part), true);
+		if (StrEqual(part[1], "")) {
+			ReplyToCommand(client, "[SM] write <filename> <value>");
+		}
+		else {
+			char buffer[256]; FormatEx(buffer, sizeof(buffer), "%s/%s.cfg", DATA_DIR, part[0]);
+			char filepath[256]; BuildPath(Path_SM, filepath, sizeof(filepath), buffer);
+			if (FileExists(filepath)) {
+				Handle filehandle = OpenFile(filepath, "a");
+				bool written = WriteFileLine(filehandle, part[1]);
+				if (written == false) {
+					ReplyToCommand(client, "[SM] Error writing to file!");
+				}
+				else {
+					ReplyToCommand(client, "[SM] Line written.");
+				}
+				CloseHandle(filehandle);
 			}
 			else {
 				ReplyToCommand(client, "[SM] File %s doesn't exist!", buffer);
@@ -1698,6 +1780,14 @@ stock void ent_file(int client, char[] action, char[] value) {
 			ReplyToCommand(client, "[SM] loadprops <filename>");
 		}
 		else {
+			char dir[256]; BuildPath(Path_SM, dir, sizeof(dir), DATA_DIR);
+			if (!DirExists(dir)) {
+				CreateDirectory(dir, 0);
+			}
+			BuildPath(Path_SM, dir, sizeof(dir), SAVES_DIR);
+			if (!DirExists(dir)) {
+				CreateDirectory(dir, 0);
+			}
 			char auth[256]; GetClientAuthId(client, AuthId_SteamID64, auth, sizeof(auth));
 			char buffer[256]; FormatEx(buffer, sizeof(buffer), "%s/%s_%s.cfg", SAVES_DIR, value, auth);
 			char filepath[256]; BuildPath(Path_SM, filepath, sizeof(filepath), buffer);

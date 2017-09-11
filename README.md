@@ -16,7 +16,7 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - !red
 - !blue
 - !bots
-- !select
+- !select (clear/data)
 - #targetname
 - classname
 #### SPECIAL
@@ -66,9 +66,12 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - `shift (value) [copy placement: +speed] [value - rotation offset]`
 - `move [place copy: +speed] [placement: +walk]`
 - `choose <filename> [placement: +speed] [cycle: +walk]`
-- `select (clear)`
+- `select`
 
 ### FILE
+- `create <filename>`
+- `write <filename> <value>`
+- `print <filename>`
 - `delete <filename>`
 - `saveprops <filename>`
 - `loadprops <filename>`
