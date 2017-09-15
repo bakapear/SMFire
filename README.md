@@ -24,9 +24,6 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - !file
 
 ## ACTIONS
-#### SINGLE
-- `copy <x> <y> <z> <pitch> <yaw> <roll>`
-#### SINGLE + MULTIPLE
 - `data (full)`
 - `removeslot <0-5/all>`
 - `stun <duration>`
@@ -50,6 +47,7 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - `setclip <value>`
 - `noclip (on/off)`
 - `teleport <target> [only single targets]`
+- `copy <x> <y> <z> <pitch> <yaw> <roll>`
 - `clearprops`
 - {tf_weapon equipping}
 - {datamap manipulation}

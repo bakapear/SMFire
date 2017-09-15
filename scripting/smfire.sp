@@ -1,4 +1,4 @@
-#define PLUGIN_VERSION "1.8"
+#define PLUGIN_VERSION "1.8.1"
 #pragma semicolon 1
 #pragma newdecls required
 #pragma dynamic 131072
@@ -204,6 +204,37 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float veloc
 					SetEntityRenderFx(prop, GetEntityRenderFx(iChoose[client]));
 					iChooseTarget[client] = prop;
 					ReplyToCommand(client, "[SM] Spawned %i > %s", prop, model);
+				}
+				if (button == IN_SPEED && bSelect[client] == true) {
+					int entity = GetAimEntity(client);
+					if (IsValidEntity(entity) && entity > 0) {
+						char ename[256]; GetEntityClassname(entity, ename, sizeof(ename));
+						if (StrEqual(ename, "prop_dynamic")) {
+							int index = -1;
+							for (int a; a < GetArraySize(aSelect[client]); a++) {
+								if (entity == GetArrayCell(aSelect[client], a)) {
+									index = a;
+								}
+							}
+							if (index != -1) {
+								SetEntityRenderMode(entity, RENDER_TRANSALPHAADD);
+								SetEntityRenderFx(GetArrayCell(aSelect[client], index), view_as<RenderFx>(0));
+								ReplyToCommand(client, "[SM] Deselected %i", GetArrayCell(aSelect[client], index));
+								RemoveFromArray(aSelect[client], index);
+							}
+							else {
+								SetEntityRenderFx(entity, view_as<RenderFx>(4));
+								ReplyToCommand(client, "[SM] Selected %i", entity);
+								PushArrayCell(aSelect[client], entity);
+							}
+						}
+						else {
+							ReplyToCommand(client, "[SM] Target must be a prop!");
+						}
+					}
+					else {
+						ReplyToCommand(client, "[SM] Invalid entity!");
+					}
 				}
 			}
 		}
@@ -424,6 +455,10 @@ void StopActiveActions(int client) {
 		iChooseTarget[client] = 0;
 		CloseHandle(hChoose[client]);
 		ReplyToCommand(client, "[SM] Stopped choosing!");
+	}
+	if (bSelect[client] == true) {
+		bSelect[client] = false;
+		ReplyToCommand(client, "[SM] Stopped selecting!");
 	}
 }
 
@@ -779,47 +814,42 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 		}
 	}
 	else if (StrEqual(action, "copy", false)) {
-		if (multiple == false) {
-			char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
-			if (StrEqual(ename, "prop_dynamic") || StrEqual(ename, "prop_physics") || StrEqual(ename, "prop_static")) {
-				if (StrEqual(value, "")) {
-					ReplyToCommand(client, "[SM] copy <x> <y> <z> <pitch> <yaw> <roll>");
-				}
-				else {
-					char model[512]; GetEntPropString(itarget, Prop_Data, "m_ModelName", model, sizeof(model));
-					char tname[128]; GetEntPropString(itarget, Prop_Data, "m_iName", tname, sizeof(tname));
-					float entang[3]; GetEntPropVector(itarget, Prop_Data, "m_angRotation", entang);
-					float entorg[3]; GetEntPropVector(itarget, Prop_Data, "m_vecOrigin", entorg);
-					int ent = CreateEntityByName("prop_dynamic");
-					DispatchKeyValue(ent, "targetname", tname);
-					DispatchKeyValue(ent, "model", model);
-					DispatchKeyValue(ent, "solid", "6");
-					DispatchKeyValue(ent, "physdamagescale", "0.0");
-					DispatchSpawn(ent);
-					ActivateEntity(ent);
-					char num[32][12]; ExplodeString(value, " ", num, 12, sizeof(num));
-					entorg[0] += StringToFloat(num[0]);
-					entorg[1] += StringToFloat(num[1]);
-					entorg[2] += StringToFloat(num[2]);
-					entang[0] += StringToFloat(num[3]);
-					entang[1] += StringToFloat(num[4]);
-					entang[2] += StringToFloat(num[5]);
-					TeleportEntity(ent, entorg, entang, NULL_VECTOR);
-					int red, green, blue, alpha;
-					GetEntityRenderColor(itarget, red, green, blue, alpha);
-					SetEntityRenderColor(ent, red, green, blue, alpha);
-					SetEntityRenderMode(ent, GetEntityRenderMode(itarget));
-					SetEntityRenderFx(ent, GetEntityRenderFx(itarget));
-					ReplyToCommand(client, "[SM] Copied prop to location");
-				}
+		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
+		if (StrEqual(ename, "prop_dynamic") || StrEqual(ename, "prop_physics") || StrEqual(ename, "prop_static")) {
+			if (StrEqual(value, "")) {
+				ReplyToCommand(client, "[SM] copy <x> <y> <z> <pitch> <yaw> <roll>");
 			}
 			else {
-				ReplyToCommand(client, "[SM] Target must be a prop!");
+				char model[512]; GetEntPropString(itarget, Prop_Data, "m_ModelName", model, sizeof(model));
+				char tname[128]; GetEntPropString(itarget, Prop_Data, "m_iName", tname, sizeof(tname));
+				float entang[3]; GetEntPropVector(itarget, Prop_Data, "m_angRotation", entang);
+				float entorg[3]; GetEntPropVector(itarget, Prop_Data, "m_vecOrigin", entorg);
+				int ent = CreateEntityByName("prop_dynamic");
+				DispatchKeyValue(ent, "targetname", tname);
+				DispatchKeyValue(ent, "model", model);
+				DispatchKeyValue(ent, "solid", "6");
+				DispatchKeyValue(ent, "physdamagescale", "0.0");
+				DispatchSpawn(ent);
+				ActivateEntity(ent);
+				char num[32][12]; ExplodeString(value, " ", num, 12, sizeof(num));
+				entorg[0] += StringToFloat(num[0]);
+				entorg[1] += StringToFloat(num[1]);
+				entorg[2] += StringToFloat(num[2]);
+				entang[0] += StringToFloat(num[3]);
+				entang[1] += StringToFloat(num[4]);
+				entang[2] += StringToFloat(num[5]);
+				TeleportEntity(ent, entorg, entang, NULL_VECTOR);
+				int red, green, blue, alpha;
+				GetEntityRenderColor(itarget, red, green, blue, alpha);
+				SetEntityRenderColor(ent, red, green, blue, alpha);
+				SetEntityRenderMode(ent, GetEntityRenderMode(itarget));
+				if (iCounter == 1)
+					ReplyToCommand(client, "[SM] Copied prop to location");
 			}
 		}
 		else {
 			if (iCounter == 1)
-				ReplyToCommand(client, "[SM] Only one target allowed!");
+				ReplyToCommand(client, "[SM] Target must be a prop!");
 		}
 	}
 	else if (StrEqual(action, "class", false)) {
@@ -1576,36 +1606,17 @@ stock void ent_trace(int client, float startpos[3], float startang[3], float end
 	}
 	else if (StrEqual(action, "select", false)) {
 		if (bSelect[client] == false) {
-			aSelect[client] = CreateArray();
+			if (aSelect[client] == INVALID_HANDLE) {
+				aSelect[client] = CreateArray();
+			}
+			StopActiveActions(client);
 			bSelect[client] = true;
-		}
-		if (IsValidEntity(entity) && entity > 0) {
-			char ename[256]; GetEntityClassname(entity, ename, sizeof(ename));
-			if (StrEqual(ename, "prop_dynamic")) {
-				int index = -1;
-				for (int i; i < GetArraySize(aSelect[client]); i++) {
-					if (entity == GetArrayCell(aSelect[client], i)) {
-						index = i;
-					}
-				}
-				if (index != -1) {
-					SetEntityRenderMode(entity, RENDER_TRANSALPHAADD);
-					SetEntityRenderFx(GetArrayCell(aSelect[client], index), view_as<RenderFx>(0));
-					ReplyToCommand(client, "[SM] Deselected %i", GetArrayCell(aSelect[client], index));
-					RemoveFromArray(aSelect[client], index);
-				}
-				else {
-					SetEntityRenderFx(entity, view_as<RenderFx>(4));
-					ReplyToCommand(client, "[SM] Selected %i", entity);
-					PushArrayCell(aSelect[client], entity);
-				}
-			}
-			else {
-				ReplyToCommand(client, "[SM] Target must be a prop!");
-			}
+			ReplyToCommand(client, "[SM] Started selecting.");
+			ReplyToCommand(client, "[SM] Select/Deselect: +speed");
 		}
 		else {
-			ReplyToCommand(client, "[SM] Invalid entity!");
+			bSelect[client] = false;
+			ReplyToCommand(client, "[SM] Stopped selecting!");
 		}
 	}
 }
