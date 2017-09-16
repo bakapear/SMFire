@@ -1,4 +1,4 @@
-#define PLUGIN_VERSION "1.8.1"
+#define PLUGIN_VERSION "1.8.4"
 #pragma semicolon 1
 #pragma newdecls required
 #pragma dynamic 131072
@@ -78,6 +78,17 @@ public void OnPluginEnd() {
 			RemoveEdict(iChoose[i]);
 		}
 		StopActiveActions(i);
+		if (aSelect[i] != INVALID_HANDLE) {
+			while (GetArraySize(aSelect[i]) != 0) {
+				for (int e; e < GetArraySize(aSelect[i]); e++) {
+					char ename[128]; GetEntityClassname(GetArrayCell(aSelect[i], e), ename, sizeof(ename));
+					if (StrEqual(ename, "prop_dynamic")) {
+						SetEntityRenderFx(GetArrayCell(aSelect[i], e), view_as<RenderFx>(0));
+					}
+					RemoveFromArray(aSelect[i], e);
+				}
+			}
+		}
 	}
 }
 
@@ -99,8 +110,17 @@ public void OnGameFrame() {
 
 public void OnClientDisconnect(int client) {
 	lastbuttons[client] = 0;
-	if (bMove[client] == true) {
-		DeleteTempEnts(client);
+	StopActiveActions(client);
+	if (aSelect[client] != INVALID_HANDLE) {
+		while (GetArraySize(aSelect[client]) != 0) {
+			for (int i; i < GetArraySize(aSelect[client]); i++) {
+				char ename[128]; GetEntityClassname(GetArrayCell(aSelect[client], i), ename, sizeof(ename));
+				if (StrEqual(ename, "prop_dynamic")) {
+					SetEntityRenderFx(GetArrayCell(aSelect[client], i), view_as<RenderFx>(0));
+				}
+				RemoveFromArray(aSelect[client], i);
+			}
+		}
 	}
 }
 
@@ -364,7 +384,7 @@ public bool filter_multiple(int entity, int mask, any data) {
 	}
 }
 
-int GetAimEntity(int client) {
+stock int GetAimEntity(int client) {
 	float org[3]; GetClientEyePosition(client, org);
 	float ang[3]; GetClientEyeAngles(client, ang);
 	Handle trace = TR_TraceRayFilterEx(org, ang, MASK_SHOT, RayType_Infinite, filter_player, client);
@@ -373,7 +393,7 @@ int GetAimEntity(int client) {
 	return ent;
 }
 
-int CreatePropRelative(int entity, float offset[3], char[] name) {
+stock int CreatePropRelative(int entity, float offset[3], char[] name) {
 	float org[3]; GetEntPropVector(entity, Prop_Data, "m_vecOrigin", org);
 	float ang[3]; GetEntPropVector(entity, Prop_Data, "m_angRotation", ang);
 	char model[256]; GetEntPropString(entity, Prop_Data, "m_ModelName", model, sizeof(model));
@@ -392,7 +412,7 @@ int CreatePropRelative(int entity, float offset[3], char[] name) {
 	return prop;
 }
 
-void CreateTempEnts(int client, int entity) {
+stock void CreateTempEnts(int client, int entity) {
 	float vector1[3]; GetEntPropVector(entity, Prop_Data, "m_vecMins", vector1);
 	float vector2[3]; GetEntPropVector(entity, Prop_Data, "m_vecMaxs", vector2);
 	float vector3[3];
@@ -419,7 +439,7 @@ void CreateTempEnts(int client, int entity) {
 	CreatePropRelative(entity, vector3, buffer);
 }
 
-void DeleteTempEnts(int client) {
+stock void DeleteTempEnts(int client) {
 	for (int e = 1; e <= GetMaxEntities(); e++) {
 		if (IsValidEntity(e)) {
 			char tname[128]; GetEntPropString(e, Prop_Data, "m_iName", tname, sizeof(tname));
@@ -434,7 +454,7 @@ void DeleteTempEnts(int client) {
 	}
 }
 
-void StopActiveActions(int client) {
+stock void StopActiveActions(int client) {
 	if (bShift[client] == true) {
 		bShift[client] = false;
 		iShift[client] = 0;
@@ -464,17 +484,21 @@ void StopActiveActions(int client) {
 
 public Action sm_fire(int client, int args) {
 	if (client == 0) { return Plugin_Handled; }
-	if (args < 2) {
-		ReplyToCommand(client, "[SM] Usage: sm_fire <target> <action> <value>");
-		return Plugin_Handled;
-	}
 	char arg1[256]; GetCmdArg(1, arg1, sizeof(arg1));
 	char arg2[256]; GetCmdArg(2, arg2, sizeof(arg2));
 	char arg3[256]; GetCmdArgString(arg3, sizeof(arg3));
-	int len1 = strlen(arg1); int len2 = strlen(arg2);
-	int len3 = len1 + len2;
-	strcopy(arg3, sizeof(arg3), arg3[len3 + 2]);
-	ent_fire(client, arg1, arg2, arg3);
+	if (StrEqual(arg1, "reload")) {
+		ServerCommand("sm plugins reload smfire");
+	}
+	else if (args < 2) {
+		ReplyToCommand(client, "[SM] Usage: sm_fire <target> <action> <value>");
+	}
+	else {
+		int len1 = strlen(arg1); int len2 = strlen(arg2);
+		int len3 = len1 + len2;
+		strcopy(arg3, sizeof(arg3), arg3[len3 + 2]);
+		ent_fire(client, arg1, arg2, arg3);
+	}
 	return Plugin_Handled;
 }
 
@@ -554,10 +578,12 @@ stock void ent_fire(int client, char[] target, char[] action, char[] value) {
 	}
 	else if (StrEqual(target, "!select", false)) {
 		if (StrEqual(action, "data")) {
-			for (int i; i < GetArraySize(aSelect[client]); i++) {
-				if (IsValidEntity(GetArrayCell(aSelect[client], i)) && GetArrayCell(aSelect[client], i) > 0) {
-					PrintToConsole(client, "%i. > %i", i, GetArrayCell(aSelect[client], i));
-					num++;
+			if (aSelect[client] != INVALID_HANDLE) {
+				for (int i; i < GetArraySize(aSelect[client]); i++) {
+					if (IsValidEntity(GetArrayCell(aSelect[client], i)) && GetArrayCell(aSelect[client], i) > 0) {
+						PrintToConsole(client, "%i. > %i", i, GetArrayCell(aSelect[client], i));
+						num++;
+					}
 				}
 			}
 			if (num == 0) {
@@ -565,11 +591,16 @@ stock void ent_fire(int client, char[] target, char[] action, char[] value) {
 			}
 		}
 		else if (StrEqual(action, "clear")) {
-			while (GetArraySize(aSelect[client]) != 0) {
-				for (int i; i < GetArraySize(aSelect[client]); i++) {
-					SetEntityRenderFx(GetArrayCell(aSelect[client], i), view_as<RenderFx>(0));
-					RemoveFromArray(aSelect[client], i);
-					num++;
+			if (aSelect[client] != INVALID_HANDLE) {
+				while (GetArraySize(aSelect[client]) != 0) {
+					for (int i; i < GetArraySize(aSelect[client]); i++) {
+						char ename[128]; GetEntityClassname(GetArrayCell(aSelect[client], i), ename, sizeof(ename));
+						if (StrEqual(ename, "prop_dynamic")) {
+							SetEntityRenderFx(GetArrayCell(aSelect[client], i), view_as<RenderFx>(0));
+						}
+						RemoveFromArray(aSelect[client], i);
+						num++;
+					}
 				}
 			}
 			if (num > 0) {
@@ -580,20 +611,25 @@ stock void ent_fire(int client, char[] target, char[] action, char[] value) {
 			}
 		}
 		else {
-			if (GetArraySize(aSelect[client]) == 0) {
-				ReplyToCommand(client, "[SM] No props selected!");
-			}
-			else {
-				for (int i; i < GetArraySize(aSelect[client]); i++) {
-					if (IsValidEntity(GetArrayCell(aSelect[client], i)) && GetArrayCell(aSelect[client], i) > 0) {
-						int itarget = GetArrayCell(aSelect[client], i);
-						ent_action(client, itarget, action, value, true);
-						num++;
-					}
-				}
-				if (num == 0) {
+			if (aSelect[client] != INVALID_HANDLE) {
+				if (GetArraySize(aSelect[client]) == 0) {
 					ReplyToCommand(client, "[SM] No props selected!");
 				}
+				else {
+					for (int i; i < GetArraySize(aSelect[client]); i++) {
+						if (IsValidEntity(GetArrayCell(aSelect[client], i)) && GetArrayCell(aSelect[client], i) > 0) {
+							int itarget = GetArrayCell(aSelect[client], i);
+							ent_action(client, itarget, action, value, true);
+							num++;
+						}
+					}
+					if (num == 0) {
+						ReplyToCommand(client, "[SM] No props selected!");
+					}
+				}
+			}
+			else {
+				ReplyToCommand(client, "[SM] No props selected!");
 			}
 		}
 	}
@@ -744,6 +780,14 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 				ReplyToCommand(client, "[SM] Killed target");
 		}
 		else {
+			if (aSelect[client] != INVALID_HANDLE) {
+				for (int i; i < GetArraySize(aSelect[client]); i++) {
+					if (itarget == GetArraySize(aSelect[client])) {
+						RemoveFromArray(aSelect[client], i);
+						i = 0;
+					}
+				}
+			}
 			RemoveEdict(itarget);
 			if (iCounter == 1)
 				ReplyToCommand(client, "[SM] Removed target");
@@ -1734,17 +1778,16 @@ stock void ent_file(int client, char[] action, char[] value) {
 			if (!DirExists(dir)) {
 				CreateDirectory(dir, 0);
 			}
-			char auth[256]; GetClientAuthId(client, AuthId_SteamID64, auth, sizeof(auth));
-			char filename[256]; FormatEx(filename, sizeof(filename), "%s/%s_%s.cfg", SAVES_DIR, value, auth);
+			char filename[256]; FormatEx(filename, sizeof(filename), "%s/%s.cfg", SAVES_DIR, value);
 			char filepath[256]; BuildPath(Path_SM, filepath, sizeof(filepath), filename);
 			int check;
-			for (int e = 1; e <= GetMaxEntities(); e++) {
-				if (IsValidEntity(e)) {
-					char ename[128]; GetEntityClassname(e, ename, sizeof(ename));
-					char tname[128]; GetEntPropString(e, Prop_Data, "m_iName", tname, sizeof(tname));
-					char buffer[128]; FormatEx(buffer, sizeof(buffer), "entprop_%s", auth);
-					if (StrContains(tname, buffer) == 0) {
-						if (e != -1 && StrEqual(ename, "prop_dynamic")) {
+			if (aSelect[client] != INVALID_HANDLE) {
+				if (GetArraySize(aSelect[client]) == 0) {
+					ReplyToCommand(client, "[SM] No props selected!");
+				}
+				else {
+					for (int i; i < GetArraySize(aSelect[client]); i++) {
+						if (IsValidEntity(GetArrayCell(aSelect[client], i)) && GetArrayCell(aSelect[client], i) > 0) {
 							check++;
 						}
 					}
@@ -1753,28 +1796,26 @@ stock void ent_file(int client, char[] action, char[] value) {
 			int num;
 			if (check > 0) {
 				Handle filehandle = OpenFile(filepath, "w");
-				for (int e = 1; e <= GetMaxEntities(); e++) {
-					if (IsValidEntity(e)) {
+				for (int i; i < GetArraySize(aSelect[client]); i++) {
+					if (IsValidEntity(GetArrayCell(aSelect[client], i)) && GetArrayCell(aSelect[client], i) > 0) {
+						int e = GetArrayCell(aSelect[client], i);
 						char ename[128]; GetEntityClassname(e, ename, sizeof(ename));
-						char tname[128]; GetEntPropString(e, Prop_Data, "m_iName", tname, sizeof(tname));
-						char buffer[128]; FormatEx(buffer, sizeof(buffer), "entprop_%s", auth);
-						if (StrContains(tname, buffer) == 0) {
-							if (e != -1 && StrEqual(ename, "prop_dynamic")) {
-								char model[512]; GetEntPropString(e, Prop_Data, "m_ModelName", model, sizeof(model));
-								int parent = GetEntPropEnt(e, Prop_Data, "m_hParent");
-								int solid = GetEntProp(e, Prop_Data, "m_nSolidType");
-								float scale = GetEntPropFloat(e, Prop_Data, "m_flModelScale");
-								float entorg[3]; GetEntPropVector(e, Prop_Data, "m_vecOrigin", entorg);
-								float entang[3]; GetEntPropVector(e, Prop_Data, "m_angRotation", entang);
-								int red, green, blue, alpha;
-								GetEntityRenderColor(e, red, green, blue, alpha);
-								char mapname[256]; GetCurrentMap(mapname, sizeof(mapname));
-								char string[512];
-								Format(string, sizeof(string), "%s|%s|%i|%i|%f|%f|%f|%f|%f|%f|%f|%i|%i|%i|%i", 
-									mapname, model, parent, solid, scale, entorg[0], entorg[1], entorg[2], entang[0], entang[1], entang[2], red, green, blue, alpha);
-								WriteFileLine(filehandle, "%s", string);
-								num++;
-							}
+						if (e != -1 && StrEqual(ename, "prop_dynamic")) {
+							char tname[128]; GetEntPropString(e, Prop_Data, "m_iName", tname, sizeof(tname));
+							char model[512]; GetEntPropString(e, Prop_Data, "m_ModelName", model, sizeof(model));
+							int parent = GetEntPropEnt(e, Prop_Data, "m_hParent");
+							int solid = GetEntProp(e, Prop_Data, "m_nSolidType");
+							float scale = GetEntPropFloat(e, Prop_Data, "m_flModelScale");
+							float entorg[3]; GetEntPropVector(e, Prop_Data, "m_vecOrigin", entorg);
+							float entang[3]; GetEntPropVector(e, Prop_Data, "m_angRotation", entang);
+							int red, green, blue, alpha;
+							GetEntityRenderColor(e, red, green, blue, alpha);
+							char mapname[256]; GetCurrentMap(mapname, sizeof(mapname));
+							char string[512];
+							Format(string, sizeof(string), "%s|%s|%i|%i|%f|%f|%f|%f|%f|%f|%f|%i|%i|%i|%i|%s", 
+								mapname, model, parent, solid, scale, entorg[0], entorg[1], entorg[2], entang[0], entang[1], entang[2], red, green, blue, alpha, tname);
+							WriteFileLine(filehandle, "%s", string);
+							num++;
 						}
 					}
 				}
@@ -1799,8 +1840,7 @@ stock void ent_file(int client, char[] action, char[] value) {
 			if (!DirExists(dir)) {
 				CreateDirectory(dir, 0);
 			}
-			char auth[256]; GetClientAuthId(client, AuthId_SteamID64, auth, sizeof(auth));
-			char buffer[256]; FormatEx(buffer, sizeof(buffer), "%s/%s_%s.cfg", SAVES_DIR, value, auth);
+			char buffer[256]; FormatEx(buffer, sizeof(buffer), "%s/%s.cfg", SAVES_DIR, value);
 			char filepath[256]; BuildPath(Path_SM, filepath, sizeof(filepath), buffer);
 			if (!FileExists(filepath)) {
 				ReplyToCommand(client, "[SM] File %s doesn't exist!", buffer);
@@ -1811,14 +1851,15 @@ stock void ent_file(int client, char[] action, char[] value) {
 				Handle filehandle = OpenFile(filepath, "r");
 				while (!IsEndOfFile(filehandle) && ReadFileLine(filehandle, line, sizeof(line))) {
 					char part[512][128];
-					ExplodeString(line, "|", part, 15, sizeof(part));
+					ExplodeString(line, "|", part, 16, sizeof(part));
 					char mapname[256]; GetCurrentMap(mapname, sizeof(mapname));
 					if (StrEqual(part[0], mapname)) {
-						char name[128]; FormatEx(name, sizeof(name), "entprop_%s", auth);
+						char auth[256]; GetClientAuthId(client, AuthId_SteamID64, auth, sizeof(auth));
+						char tname[128]; FormatEx(tname, sizeof(tname), "entprop_%s", auth);
 						PrecacheModel(part[1]);
 						int prop = CreateEntityByName("prop_dynamic");
 						DispatchKeyValue(prop, "model", part[1]);
-						DispatchKeyValue(prop, "targetname", name);
+						DispatchKeyValue(prop, "targetname", tname);
 						DispatchKeyValue(prop, "solid", part[3]);
 						DispatchKeyValue(prop, "modelscale", part[4]);
 						DispatchSpawn(prop);
