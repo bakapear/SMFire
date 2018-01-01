@@ -1,4 +1,4 @@
-#define PLUGIN_VERSION "1.8.5"
+#define PLUGIN_VERSION "1.8.6"
 #pragma semicolon 1
 #pragma newdecls required
 #pragma dynamic 131072
@@ -45,10 +45,6 @@ public Plugin myinfo =  {
 };
 
 public void OnPluginStart() {
-	char mod[32]; GetGameFolderName(mod, sizeof(mod));
-	if (!StrEqual(mod, "tf")) {
-		SetFailState("Plugin only works with Team Fortress 2!");
-	}
 	LoadTranslations("common.phrases");
 	RegAdminCmd("sm_fire", sm_fire, ADMFLAG_BAN, "[SM] Usage: sm_fire <target> <action> <value>");
 	HookEvent("player_spawn", event_playerspawn, EventHookMode_Post);
@@ -116,16 +112,19 @@ public void OnClientDisconnect(int client) {
 	lastbuttons[client] = 0;
 	StopActiveActions(client);
 	if (aSelect[client] != INVALID_HANDLE) {
-		while (GetArraySize(aSelect[client]) != 0) {
-			for (int i; i < GetArraySize(aSelect[client]); i++) {
-				char ename[128]; GetEntityClassname(GetArrayCell(aSelect[client], i), ename, sizeof(ename));
-				if (StrEqual(ename, "prop_dynamic")) {
-					SetEntityRenderFx(GetArrayCell(aSelect[client], i), view_as<RenderFx>(0));
+				while (GetArraySize(aSelect[client]) != 0) {
+					for (int i; i < GetArraySize(aSelect[client]); i++) {
+						if(IsValidEntity(GetArrayCell(aSelect[client], i))) {
+							char ename[128]; GetEntityClassname(GetArrayCell(aSelect[client], i), ename, sizeof(ename));
+							if (StrEqual(ename, "prop_dynamic")) {
+								SetEntityRenderFx(GetArrayCell(aSelect[client], i), view_as<RenderFx>(0));
+							}
+						}
+						RemoveFromArray(aSelect[client], i);
+					}
 				}
-				RemoveFromArray(aSelect[client], i);
+				ClearArray(aSelect[client]);
 			}
-		}
-	}
 }
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float velocity[3], float angles[3], int &weapon) {
@@ -350,6 +349,9 @@ public Action event_roundstart(Handle event, char[] name, bool dontbroadcast) {
 	for (int i = 1; i <= MaxClients; i++) {
 		if (IsClientInGame(i) && IsClientConnected(i)) {
 			StopActiveActions(i);
+			if (aSelect[i] != INVALID_HANDLE) {
+				ClearArray(aSelect[i]);
+			}
 		}
 	}
 }
@@ -370,7 +372,7 @@ public Action hook_sound(int clients[64], int &numclients, char sample[PLATFORM_
 	return Plugin_Continue;
 }
 
-stock bool filter_player(int entity, int mask, any data) {
+public bool filter_player(int entity, int mask, any data) {
 	if (entity == data) {
 		return false;
 	}
@@ -379,7 +381,7 @@ stock bool filter_player(int entity, int mask, any data) {
 	}
 }
 
-stock bool filter_multiple(int entity, int mask, any data) {
+public bool filter_multiple(int entity, int mask, any data) {
 	if (entity == data || entity == iShift[data] || entity == iChoose[data] || entity == iChooseTarget[data]) {
 		return false;
 	}
@@ -487,6 +489,7 @@ stock void StopActiveActions(int client) {
 }
 
 public Action sm_fire(int client, int args) {
+	if (client == 0) { return Plugin_Handled; }
 	char arg1[256]; GetCmdArg(1, arg1, sizeof(arg1));
 	char arg2[256]; GetCmdArg(2, arg2, sizeof(arg2));
 	char arg3[256]; GetCmdArgString(arg3, sizeof(arg3));
@@ -597,17 +600,20 @@ stock void ent_fire(int client, char[] target, char[] action, char[] value) {
 			if (aSelect[client] != INVALID_HANDLE) {
 				while (GetArraySize(aSelect[client]) != 0) {
 					for (int i; i < GetArraySize(aSelect[client]); i++) {
-						char ename[128]; GetEntityClassname(GetArrayCell(aSelect[client], i), ename, sizeof(ename));
-						if (StrEqual(ename, "prop_dynamic")) {
-							SetEntityRenderFx(GetArrayCell(aSelect[client], i), view_as<RenderFx>(0));
+						if (IsValidEntity(GetArrayCell(aSelect[client], i))) {
+							char ename[128]; GetEntityClassname(GetArrayCell(aSelect[client], i), ename, sizeof(ename));
+							if (StrEqual(ename, "prop_dynamic")) {
+								SetEntityRenderFx(GetArrayCell(aSelect[client], i), view_as<RenderFx>(0));
+							}
 						}
 						RemoveFromArray(aSelect[client], i);
 						num++;
 					}
 				}
+				ClearArray(aSelect[client]);
 			}
 			if (num > 0) {
-				ReplyToCommand(client, "[SM] Deselected %i props!", num);
+				ReplyToCommand(client, "[SM] Selection cleared!");
 			}
 			else {
 				ReplyToCommand(client, "[SM] No props selected!");
@@ -1437,10 +1443,6 @@ stock void ent_trace(int client, float startpos[3], float startang[3], float end
 		ReplyToCommand(client, "StartAng: %.0f %.0f %.0f", startang[0], startang[1], startang[2]);
 		ReplyToCommand(client, "EndPos: %.0f %.0f %.0f", endpos[0], endpos[1], endpos[2]);
 		ReplyToCommand(client, "Hit: %i", entity);
-	}
-	else if (StrEqual(action, "teleport", false) || StrEqual(action, "tp", false)) {
-		TeleportEntity(client, endpos, NULL_VECTOR, NULL_VECTOR);
-		ReplyToCommand(client, "[SM] Teleported to %.f %.f %.f", endpos[0], endpos[1], endpos[2]);
 	}
 	else if (StrEqual(action, "prop", false)) {
 		if (StrEqual(value, "")) {
