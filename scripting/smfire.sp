@@ -1,4 +1,4 @@
-#define PLUGIN_VERSION "1.8.6"
+#define PLUGIN_VERSION "1.8.7"
 #pragma semicolon 1
 #pragma newdecls required
 #pragma dynamic 131072
@@ -45,6 +45,10 @@ public Plugin myinfo =  {
 };
 
 public void OnPluginStart() {
+	char mod[32]; GetGameFolderName(mod, sizeof(mod));
+	if (!StrEqual(mod, "tf")) {
+		SetFailState("Plugin only works with Team Fortress 2!");
+	}
 	LoadTranslations("common.phrases");
 	RegAdminCmd("sm_fire", sm_fire, ADMFLAG_BAN, "[SM] Usage: sm_fire <target> <action> <value>");
 	HookEvent("player_spawn", event_playerspawn, EventHookMode_Post);
@@ -80,14 +84,17 @@ public void OnPluginEnd() {
 		StopActiveActions(i);
 		if (aSelect[i] != INVALID_HANDLE) {
 			while (GetArraySize(aSelect[i]) != 0) {
-				for (int e; e < GetArraySize(aSelect[i]); e++) {
-					char ename[128]; GetEntityClassname(GetArrayCell(aSelect[i], e), ename, sizeof(ename));
-					if (StrEqual(ename, "prop_dynamic")) {
-						SetEntityRenderFx(GetArrayCell(aSelect[i], e), view_as<RenderFx>(0));
+				for (int a; a < GetArraySize(aSelect[i]); a++) {
+					if (IsValidEntity(GetArrayCell(aSelect[i], a))) {
+						char ename[128]; GetEntityClassname(GetArrayCell(aSelect[i], a), ename, sizeof(ename));
+						if (StrEqual(ename, "prop_dynamic")) {
+							SetEntityRenderFx(GetArrayCell(aSelect[i], a), view_as<RenderFx>(0));
+						}
 					}
-					RemoveFromArray(aSelect[i], e);
+					RemoveFromArray(aSelect[i], a);
 				}
 			}
+			ClearArray(aSelect[i]);
 		}
 	}
 }
@@ -112,19 +119,19 @@ public void OnClientDisconnect(int client) {
 	lastbuttons[client] = 0;
 	StopActiveActions(client);
 	if (aSelect[client] != INVALID_HANDLE) {
-				while (GetArraySize(aSelect[client]) != 0) {
-					for (int i; i < GetArraySize(aSelect[client]); i++) {
-						if(IsValidEntity(GetArrayCell(aSelect[client], i))) {
-							char ename[128]; GetEntityClassname(GetArrayCell(aSelect[client], i), ename, sizeof(ename));
-							if (StrEqual(ename, "prop_dynamic")) {
-								SetEntityRenderFx(GetArrayCell(aSelect[client], i), view_as<RenderFx>(0));
-							}
-						}
-						RemoveFromArray(aSelect[client], i);
+		while (GetArraySize(aSelect[client]) != 0) {
+			for (int i; i < GetArraySize(aSelect[client]); i++) {
+				if (IsValidEntity(GetArrayCell(aSelect[client], i))) {
+					char ename[128]; GetEntityClassname(GetArrayCell(aSelect[client], i), ename, sizeof(ename));
+					if (StrEqual(ename, "prop_dynamic")) {
+						SetEntityRenderFx(GetArrayCell(aSelect[client], i), view_as<RenderFx>(0));
 					}
 				}
-				ClearArray(aSelect[client]);
+				RemoveFromArray(aSelect[client], i);
 			}
+		}
+		ClearArray(aSelect[client]);
+	}
 }
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float velocity[3], float angles[3], int &weapon) {
@@ -350,6 +357,17 @@ public Action event_roundstart(Handle event, char[] name, bool dontbroadcast) {
 		if (IsClientInGame(i) && IsClientConnected(i)) {
 			StopActiveActions(i);
 			if (aSelect[i] != INVALID_HANDLE) {
+				while (GetArraySize(aSelect[i]) != 0) {
+					for (int a; a < GetArraySize(aSelect[i]); a++) {
+						if (IsValidEntity(GetArrayCell(aSelect[i], a))) {
+							char ename[128]; GetEntityClassname(GetArrayCell(aSelect[i], a), ename, sizeof(ename));
+							if (StrEqual(ename, "prop_dynamic")) {
+								SetEntityRenderFx(GetArrayCell(aSelect[i], a), view_as<RenderFx>(0));
+							}
+						}
+						RemoveFromArray(aSelect[i], a);
+					}
+				}
 				ClearArray(aSelect[i]);
 			}
 		}
