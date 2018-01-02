@@ -528,12 +528,12 @@ public Action sm_fire(int client, int args) {
 
 stock void ent_fire(int client, char[] target, char[] action, char[] value) {
 	int num;
-	if (StrEqual(target, "!picker", false)) {
-		int itarget = GetClientAimTarget(client, false);
+	if (StrEqual(target, "!self", false)) {
+		int itarget = client;
 		ent_action(client, itarget, action, value, false);
 	}
-	else if (StrEqual(target, "!self", false)) {
-		int itarget = client;
+	else if (StrEqual(target, "!picker", false)) {
+		int itarget = GetClientAimTarget(client, false);
 		ent_action(client, itarget, action, value, false);
 	}
 	else if (StrEqual(target, "!all", false)) {
@@ -588,16 +588,6 @@ stock void ent_fire(int client, char[] target, char[] action, char[] value) {
 				ent_action(client, itarget, action, value, true);
 				num++;
 			}
-		}
-	}
-	else if (StrEqual(target, "!aim", false)) {
-		float playerang[3]; GetClientEyeAngles(client, playerang);
-		float playerorg[3]; GetClientEyePosition(client, playerorg);
-		Handle trace = TR_TraceRayFilterEx(playerorg, playerang, MASK_SHOT, RayType_Infinite, filter_player, client);
-		if (TR_DidHit(trace)) {
-			float endpos[3]; TR_GetEndPosition(endpos, trace);
-			int entity = TR_GetEntityIndex(trace);
-			ent_trace(client, playerorg, playerang, endpos, entity, action, value);
 		}
 	}
 	else if (StrEqual(target, "!select", false)) {
@@ -658,6 +648,16 @@ stock void ent_fire(int client, char[] target, char[] action, char[] value) {
 			else {
 				ReplyToCommand(client, "[SM] No props selected!");
 			}
+		}
+	}
+	else if (StrEqual(target, "!aim", false)) {
+		float playerang[3]; GetClientEyeAngles(client, playerang);
+		float playerorg[3]; GetClientEyePosition(client, playerorg);
+		Handle trace = TR_TraceRayFilterEx(playerorg, playerang, MASK_SHOT, RayType_Infinite, filter_player, client);
+		if (TR_DidHit(trace)) {
+			float endpos[3]; TR_GetEndPosition(endpos, trace);
+			int entity = TR_GetEntityIndex(trace);
+			ent_trace(client, playerorg, playerang, endpos, entity, action, value);
 		}
 	}
 	else if (StrEqual(target, "!file", false)) {
@@ -738,6 +738,9 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 				ReplyToCommand(client, "Angles: %.0f %.0f %.0f", entang[0], entang[1], entang[2]);
 				ReplyToCommand(client, "Velocity: %.0f %.0f %.0f", entvec[0], entvec[1], entvec[2]);
 			}
+		}
+		else if(StrEqual(value, "full", false)) {
+			PrintToConsole(client, "%i > Classname: %s - Name: %s - Model: %s", itarget, ename, tname, model);
 		}
 		else {
 			PrintToConsole(client, "%i > Classname: %s - Name: %s", itarget, ename, tname);
@@ -1850,7 +1853,7 @@ stock void ent_file(int client, char[] action, char[] value) {
 				CloseHandle(filehandle);
 			}
 			else {
-				ReplyToCommand(client, "[SM] No props available for saving.");
+				ReplyToCommand(client, "[SM] No props selected for saving.");
 			}
 		}
 	}
