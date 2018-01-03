@@ -1,4 +1,4 @@
-#define PLUGIN_VERSION "1.8.7"
+#define PLUGIN_VERSION "1.9"
 #pragma semicolon 1
 #pragma newdecls required
 #pragma dynamic 131072
