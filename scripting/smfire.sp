@@ -739,7 +739,7 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 				ReplyToCommand(client, "Velocity: %.0f %.0f %.0f", entvec[0], entvec[1], entvec[2]);
 			}
 		}
-		else if(StrEqual(value, "full", false)) {
+		else if (StrEqual(value, "full", false)) {
 			PrintToConsole(client, "%i > Classname: %s - Name: %s - Model: %s", itarget, ename, tname, model);
 		}
 		else {
@@ -1678,8 +1678,97 @@ stock void ent_trace(int client, float startpos[3], float startang[3], float end
 			ReplyToCommand(client, "[SM] Stopped choosing!");
 		}
 	}
-	else if (StrEqual(action, "select", false)) {
-		if (bSelect[client] == false) {
+	else if (StrEqual(action, "select", false) || StrEqual(action, "deselect", false)) {
+		if (!StrEqual(value, "")) {
+			if (aSelect[client] == INVALID_HANDLE) {
+				aSelect[client] = CreateArray();
+			}
+			if (StrEqual(value, "0")) {
+				if (IsValidEntity(entity) && entity > 0) {
+					char ename[256]; GetEntityClassname(entity, ename, sizeof(ename));
+					if (StrEqual(ename, "prop_dynamic")) {
+						int index = -1;
+						for (int a; a < GetArraySize(aSelect[client]); a++) {
+							if (entity == GetArrayCell(aSelect[client], a)) {
+								index = a;
+							}
+						}
+						if (index != -1) {
+							SetEntityRenderMode(entity, RENDER_TRANSALPHAADD);
+							SetEntityRenderFx(GetArrayCell(aSelect[client], index), view_as<RenderFx>(0));
+							ReplyToCommand(client, "[SM] Deselected %i", GetArrayCell(aSelect[client], index));
+							RemoveFromArray(aSelect[client], index);
+						}
+						else {
+							SetEntityRenderFx(entity, view_as<RenderFx>(4));
+							ReplyToCommand(client, "[SM] Selected %i", entity);
+							PushArrayCell(aSelect[client], entity);
+						}
+					}
+					else {
+						ReplyToCommand(client, "[SM] Target must be a prop!");
+					}
+				}
+				else {
+					ReplyToCommand(client, "[SM] Invalid entity!");
+				}
+			}
+			else {
+				float range = StringToFloat(value);
+				if (range > 0) {
+					float clientorg[3]; GetClientAbsOrigin(client, clientorg);
+					int num;
+					for (int e = 1; e <= GetMaxEntities(); e++) {
+						if (IsValidEntity(e) && e != client) {
+							char ename[128]; GetEntityClassname(e, ename, sizeof(ename));
+							if (StrEqual(ename, "prop_dynamic", false)) {
+								float entorg[3]; GetEntPropVector(e, Prop_Data, "m_vecOrigin", entorg);
+								float distance = GetVectorDistance(clientorg, entorg);
+								if (distance < range) {
+									int index = -1;
+									for (int a; a < GetArraySize(aSelect[client]); a++) {
+										if (e == GetArrayCell(aSelect[client], a)) {
+											index = a;
+										}
+									}
+									if (index != -1) {
+										if (StrEqual(action, "deselect", false)) {
+											SetEntityRenderMode(e, RENDER_TRANSALPHAADD);
+											SetEntityRenderFx(GetArrayCell(aSelect[client], index), view_as<RenderFx>(0));
+											PrintToConsole(client, "[SM] Deselected %i", GetArrayCell(aSelect[client], index));
+											RemoveFromArray(aSelect[client], index);
+										}
+									}
+									else {
+										if (StrEqual(action, "select", false)) {
+											SetEntityRenderFx(e, view_as<RenderFx>(4));
+											PrintToConsole(client, "[SM] Selected %i", e);
+											PushArrayCell(aSelect[client], e);
+										}
+									}
+									num++;
+								}
+							}
+						}
+					}
+					if (num > 0) {
+						if (StrEqual(action, "select", false)) {
+							ReplyToCommand(client, "%i props selected.", num);
+						}
+						else {
+							ReplyToCommand(client, "%i props deselected.", num);
+						}
+					}
+					else {
+						ReplyToCommand(client, "No props in range!");
+					}
+				}
+				else {
+					ReplyToCommand(client, "[SM] Invalid range!");
+				}
+			}
+		}
+		else if (bSelect[client] == false) {
 			if (aSelect[client] == INVALID_HANDLE) {
 				aSelect[client] = CreateArray();
 			}
