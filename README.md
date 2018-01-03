@@ -64,7 +64,8 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - `shift (value) [copy placement: +speed] [value - rotation offset]`
 - `move [place copy: +speed] [placement: +walk]`
 - `choose <filename> [placement: +speed] [cycle: +walk]`
-- `select [select/deselect: +speed]`
+- `select (0/range) [if no value: select/deselect: +speed]`
+- `deselect (0/range) [if no value: select/deselect: +speed]`
 ### FILE
 - `create <filename>`
 - `write <filename> <value>`
