@@ -48,6 +48,7 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - `noclip (on/off)`
 - `teleport <target> [only single targets]`
 - `copy <x> <y> <z> <pitch> <yaw> <roll>`
+- `play <soundpath>`
 - `clearprops`
 - {tf_weapon equipping}
 - {datamap manipulation}
