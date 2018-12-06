@@ -1,0 +1,19 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "SourcePawn Compile Github",
+            "type": "shell",
+            "command": "\"./src/scripting/spcomp.exe\" \"./src/scripting/smfire.sp\" -o \"./src/plugins/smfire\"",
+            "problemMatcher": []
+        },
+        {
+            "label": "SourcePawn Compile Server",
+            "type": "shell",
+            "command": "\"./src/scripting/spcomp.exe\" \"./src/scripting/smfire.sp\" -o 'C:/Program Files (x86)/Steam/steamapps/common/Team Fortress 2 Server/steamapps/common/Team Fortress 2 Dedicated Server/tf/addons/sourcemod/plugins/smfire'",
+            "problemMatcher": []
+        }
+    ]
+}
