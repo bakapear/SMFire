@@ -1263,6 +1263,34 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 				ReplyToCommand(client, "[SM] Target must be a player!");
 		}
 	}
+	else if (StrEqual(action, "wear", false)) {
+		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
+		if (StrEqual(ename, "player")) {
+			if (StrEqual(value, "")) {
+				if (iCounter == 1)
+					ReplyToCommand(client, "[SM] setclip <value>");
+			}
+			else {
+				int entity = CreateEntityByName("tf_wearable");
+				if (entity != -1) {
+					SetEntProp(entity, Prop_Send, "m_iItemDefinitionIndex", StringToInt(value));
+					SetEntProp(entity, Prop_Send, "m_iEntityQuality", 6);
+					SetEntProp(entity, Prop_Send, "m_iEntityLevel", 10);
+					SetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity", itarget);
+					SetEntPropEnt(entity, Prop_Send, "moveparent", itarget);
+					SetEntProp(entity, Prop_Send, "m_bInitialized", 1);
+					DispatchSpawn(entity);
+					SDKCall(getEquipHandle("smfire"), itarget, entity);
+					SetEntityRenderMode(entity, RENDER_NORMAL);
+					SetEntityRenderColor(entity, 255, 255, 255, 255);
+				}
+			}
+		}
+		else {
+			if (iCounter == 1)
+				ReplyToCommand(client, "[SM] Target must be a player!");
+		}
+	}
 	else if (StrEqual(action, "clearprops", false)) {
 		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
 		if (StrEqual(ename, "player")) {
@@ -2032,4 +2060,11 @@ stock void ent_file(int client, char[] action, char[] value) {
 			}
 		}
 	}
+} 
+
+public Handle getEquipHandle(char[] cfg) {
+	StartPrepSDKCall(SDKCall_Player);
+	PrepSDKCall_SetFromConf(LoadGameConfigFile(cfg), SDKConf_Virtual, "CTFPlayer::EquipWearable");
+	PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer);
+	return EndPrepSDKCall();
 } 
