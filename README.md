@@ -79,9 +79,10 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 ## DATAMAP MANIPULATION
 `sm_fire <target> <datamap> <*any>`
 
-Gives the ability to check or change any datamap of target in-game.
+Gives the ability to check or change any datamap/netprop of target in-game.
 
-[List of Datamaps](https://github.com/powerlord/tf2-data/blob/master/datamaps.txt)
+[List of Datamaps](https://github.com/powerlord/tf2-data/blob/master/datamaps.txt)<br>
+[List of Netprops](https://github.com/powerlord/tf2-data/blob/master/netprops.txt)
 
 Examples:
 - `m_iHealth` - player health
