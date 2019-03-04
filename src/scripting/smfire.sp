@@ -1447,8 +1447,111 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 			}
 		}
 		else {
-			if (iCounter == 1)
-				ReplyToCommand(client, "[SM] %s not a datamap for target!", action);
+			char netname[256]; GetEntityNetClass(itarget, netname, sizeof(netname));
+			info = FindSendPropInfo(netname, action, type);
+			if (info != -1) {
+				if (StrEqual(value, "")) {
+					char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
+					if (type == PropField_Integer) {
+						int data = GetEntProp(itarget, Prop_Send, action);
+						if (StrEqual(ename, "player")) {
+							ReplyToCommand(client, "[%N] \x03%i", itarget, data);
+						}
+						else {
+							ReplyToCommand(client, "[%i] \x03%i", itarget, data);
+						}
+					}
+					else if (type == PropField_Float) {
+						float data = GetEntPropFloat(itarget, Prop_Send, action);
+						if (StrEqual(ename, "player")) {
+							ReplyToCommand(client, "[%N] \x03%.2f", itarget, data);
+						}
+						else {
+							ReplyToCommand(client, "[%i] \x03%.2f", itarget, data);
+						}
+					}
+					else if (type == PropField_String || type == PropField_String_T) {
+						char buffer[256];
+						GetEntPropString(itarget, Prop_Send, action, buffer, sizeof(buffer));
+						if (StrEqual(ename, "player")) {
+							ReplyToCommand(client, "[%N] \x03%s", itarget, buffer);
+						}
+						else {
+							ReplyToCommand(client, "[%i] \x03%s", itarget, buffer);
+						}
+					}
+					else if (type == PropField_Vector) {
+						float vector[3];
+						GetEntPropVector(itarget, Prop_Send, action, vector);
+						if (StrEqual(ename, "player")) {
+							ReplyToCommand(client, "[%N] \x03%.0f %.0f %.0f", itarget, vector[0], vector[1], vector[2]);
+						}
+						else {
+							ReplyToCommand(client, "[%i] \x03%.0f %.0f %.0f", itarget, vector[0], vector[1], vector[2]);
+						}
+					}
+					else if (type == PropField_Entity) {
+						int data = GetEntPropEnt(itarget, Prop_Send, action);
+						if (StrEqual(ename, "player")) {
+							ReplyToCommand(client, "[%N] \x03%i", itarget, data);
+						}
+						else {
+							ReplyToCommand(client, "[%i] \x03%i", itarget, data);
+						}
+					}
+					else {
+						if (iCounter == 1)
+							ReplyToCommand(client, "[SM] Type not supported!");
+					}
+				}
+				else {
+					if (type == PropField_Integer) {
+						SetEntProp(itarget, Prop_Send, action, StringToInt(value));
+						if (iCounter == 1)
+							ReplyToCommand(client, "[SM] Set %s to %s", action, value);
+					}
+					else if (type == PropField_Float) {
+						SetEntPropFloat(itarget, Prop_Send, action, StringToFloat(value));
+						if (iCounter == 1)
+							ReplyToCommand(client, "[SM] Set %s to %s", action, value);
+					}
+					else if (type == PropField_String || type == PropField_String_T) {
+						SetEntPropString(itarget, Prop_Send, action, value);
+						if (iCounter == 1)
+							ReplyToCommand(client, "[SM] Set %s to %s", action, value);
+					}
+					else if (type == PropField_Vector) {
+						float vector[3]; char num[64][6];
+						ExplodeString(value, " ", num, 3, sizeof(num), false);
+						vector[0] = StringToFloat(num[0]);
+						vector[1] = StringToFloat(num[1]);
+						vector[2] = StringToFloat(num[2]);
+						SetEntPropVector(itarget, Prop_Send, action, vector);
+						if (iCounter == 1)
+							ReplyToCommand(client, "[SM] Set %s to %.0f %.0f %.0f", action, vector[0], vector[1], vector[2]);
+					}
+					else if (type == PropField_Entity) {
+						if (IsValidEntity(StringToInt(value))) {
+							SetEntPropEnt(itarget, Prop_Send, action, StringToInt(value));
+							if (iCounter == 1)
+								ReplyToCommand(client, "[SM] Set %s to %s", action, value);
+						}
+						else {
+							if (iCounter == 1)
+								ReplyToCommand(client, "[SM] Invalid entity!", action, value);
+						}
+						
+					}
+					else {
+						if (iCounter == 1)
+							ReplyToCommand(client, "[SM] Type not supported!");
+					}
+				}
+			}
+			else {
+				if (iCounter == 1)
+					ReplyToCommand(client, "[SM] %s not a datamap for target!", action);
+			}
 		}
 	}
 	else if (StrContains(action, "tf_weapon", false) == 0) {
@@ -2060,7 +2163,7 @@ stock void ent_file(int client, char[] action, char[] value) {
 			}
 		}
 	}
-} 
+}
 
 public Handle getEquipHandle(char[] cfg) {
 	StartPrepSDKCall(SDKCall_Player);
