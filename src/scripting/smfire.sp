@@ -1,4 +1,4 @@
-#define PLUGIN_VERSION "2.0"
+#define PLUGIN_VERSION "2.1"
 #pragma semicolon 1
 #pragma newdecls required
 #pragma dynamic 131072
@@ -21,6 +21,7 @@ float fHeadScale[MAXPLAYERS + 1];
 float fTorsoScale[MAXPLAYERS + 1];
 float fHandScale[MAXPLAYERS + 1];
 bool bThirdperson[MAXPLAYERS + 1];
+int iTrail[MAXPLAYERS + 1];
 int iVoicePitch[MAXPLAYERS + 1];
 bool bShift[MAXPLAYERS + 1];
 int iShiftMode[MAXPLAYERS + 1];
@@ -60,6 +61,7 @@ public void OnPluginStart() {
 		fTorsoScale[i] = 1.0;
 		fHandScale[i] = 1.0;
 		bThirdperson[i] = false;
+		iTrail[i] = -1;
 		iVoicePitch[i] = 100;
 	}
 }
@@ -96,6 +98,10 @@ public void OnPluginEnd() {
 			}
 			ClearArray(aSelect[i]);
 		}
+		if (iTrail[i] != -1) {
+			if (IsValidEntity(iTrail[i]))RemoveEdict(iTrail[i]);
+			iTrail[i] = -1;
+		}
 	}
 }
 
@@ -131,6 +137,10 @@ public void OnClientDisconnect(int client) {
 			}
 		}
 		ClearArray(aSelect[client]);
+	}
+	if (iTrail[client] != -1) {
+		if (IsValidEntity(iTrail[client]))RemoveEdict(iTrail[client]);
+		iTrail[client] = -1;
 	}
 }
 
@@ -345,11 +355,17 @@ public Action event_playerspawn(Handle event, char[] name, bool dontbroadcast) {
 	if (bThirdperson[client] == true) {
 		CreateTimer(0.1, spawn_thirdperson, client);
 	}
+	if (iTrail[client] != -1) {
+		DispatchKeyValue(iTrail[client], "renderamt", "255");
+	}
 }
 
 public Action event_playerdeath(Handle event, char[] name, bool dontbroadcast) {
 	int client = GetClientOfUserId(GetEventInt(event, "userid"));
 	StopActiveActions(client);
+	if (iTrail[client] != -1) {
+		DispatchKeyValue(iTrail[client], "renderamt", "0");
+	}
 }
 
 public Action event_roundstart(Handle event, char[] name, bool dontbroadcast) {
@@ -583,7 +599,7 @@ stock void ent_fire(int client, char[] target, char[] action, char[] value) {
 	}
 	else if (StrEqual(target, "!bots", false)) {
 		for (int i = 1; i <= MaxClients; i++) {
-			if (IsFakeClient(i) && IsClientInGame(i) && IsClientConnected(i)) {
+			if (IsClientConnected(i) && IsClientInGame(i) && IsFakeClient(i)) {
 				int itarget = i;
 				ent_action(client, itarget, action, value, true);
 				num++;
@@ -775,13 +791,88 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 		if (StrEqual(ename, "player")) {
 			if (StrEqual(value, "")) {
 				if (iCounter == 1)
-					ReplyToCommand(client, "[SM] stun <value>");
+					ReplyToCommand(client, "[SM] stun <duration>");
 			}
 			else {
 				float fvalue = StringToFloat(value);
 				TF2_StunPlayer(itarget, fvalue, 0.0, TF_STUNFLAGS_BIGBONK, 0);
 				if (iCounter == 1)
 					ReplyToCommand(client, "[SM] Stunned target for %.0f seconds", fvalue);
+			}
+		}
+		else {
+			if (iCounter == 1)
+				ReplyToCommand(client, "[SM] Target must be a player!");
+		}
+	}
+	else if (StrEqual(action, "scare", false)) {
+		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
+		if (StrEqual(ename, "player")) {
+			if (StrEqual(value, "")) {
+				if (iCounter == 1)
+					ReplyToCommand(client, "[SM] scare <duration>");
+			}
+			else {
+				float fvalue = StringToFloat(value);
+				TF2_StunPlayer(itarget, fvalue, 0.0, TF_STUNFLAGS_GHOSTSCARE, 0);
+				if (iCounter == 1)
+					ReplyToCommand(client, "[SM] Scared target for %.0f seconds", fvalue);
+			}
+		}
+		else {
+			if (iCounter == 1)
+				ReplyToCommand(client, "[SM] Target must be a player!");
+		}
+	}
+	else if (StrEqual(action, "trail", false)) {
+		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
+		if (StrEqual(ename, "player")) {
+			if (StrEqual(value, "")) {
+				if (iCounter == 1)
+					ReplyToCommand(client, "[SM] trail <R+G+B/off>");
+			}
+			else if (StrEqual(value, "off")) {
+				if (iTrail[itarget] != -1) {
+					if (IsValidEntity(iTrail[itarget]))RemoveEdict(iTrail[itarget]);
+					iTrail[itarget] = -1;
+					if (iCounter == 1)
+						ReplyToCommand(client, "[SM] Disabled trail for target");
+				}
+				else {
+					if (iCounter == 1)
+						ReplyToCommand(client, "[SM] No trail found for target!");
+				}
+			}
+			else {
+				char num[32][3]; ExplodeString(value, "+", num, 3, sizeof(num));
+				int red = StringToInt(num[0]);
+				int green = StringToInt(num[1]);
+				int blue = StringToInt(num[2]);
+				char color[128]; Format(color, sizeof(color), "%i %i %i", red, green, blue);
+				if (iTrail[itarget] != -1) {
+					DispatchKeyValue(iTrail[itarget], "rendercolor", color);
+				}
+				else {
+					char tname[64]; Format(tname, sizeof(tname), "player_%i", itarget);
+					int ent = CreateEntityByName("env_spritetrail");
+					DispatchKeyValue(ent, "renderamt", "255");
+					DispatchKeyValue(ent, "rendermode", "1");
+					DispatchKeyValue(ent, "spritename", "materials/sprites/spotlight.vmt");
+					DispatchKeyValue(ent, "lifetime", "3.0");
+					DispatchKeyValue(ent, "startwidth", "8.0");
+					DispatchKeyValue(ent, "endwidth", "0.1");
+					DispatchKeyValue(ent, "rendercolor", color);
+					DispatchSpawn(ent);
+					float targetorg[3]; GetClientAbsOrigin(itarget, targetorg);
+					targetorg[2] += 10.0;
+					TeleportEntity(ent, targetorg, NULL_VECTOR, NULL_VECTOR);
+					DispatchKeyValue(itarget, "targetname", tname);
+					SetVariantString(tname);
+					AcceptEntityInput(ent, "SetParent", -1, -1);
+					iTrail[itarget] = ent;
+				}
+				if (iCounter == 1)
+					ReplyToCommand(client, "[SM] Set trail for target to %s", value);
 			}
 		}
 		else {
@@ -821,6 +912,30 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 			RemoveEdict(itarget);
 			if (iCounter == 1)
 				ReplyToCommand(client, "[SM] Removed target");
+		}
+	}
+	else if (StrEqual(action, "regen", false)) {
+		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
+		if (StrEqual(ename, "player")) {
+			TF2_RegeneratePlayer(itarget);
+			if (iCounter == 1)
+				ReplyToCommand(client, "[SM] Regenerated target");
+		}
+		else {
+			if (iCounter == 1)
+				ReplyToCommand(client, "[SM] Target must be a player!");
+		}
+	}
+	else if (StrEqual(action, "respawn", false)) {
+		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
+		if (StrEqual(ename, "player")) {
+			TF2_RespawnPlayer(itarget);
+			if (iCounter == 1)
+				ReplyToCommand(client, "[SM] Respawned target");
+		}
+		else {
+			if (iCounter == 1)
+				ReplyToCommand(client, "[SM] Target must be a player!");
 		}
 	}
 	else if (StrEqual(action, "addorg", false)) {
@@ -1268,7 +1383,7 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 		if (StrEqual(ename, "player")) {
 			if (StrEqual(value, "")) {
 				if (iCounter == 1)
-					ReplyToCommand(client, "[SM] setclip <value>");
+					ReplyToCommand(client, "[SM] wear <index>");
 			}
 			else {
 				int entity = CreateEntityByName("tf_wearable");
