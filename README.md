@@ -27,6 +27,10 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - `data (full)`
 - `removeslot <0-5/all>`
 - `stun <duration>`
+- `scare <duration>`
+- `trail <R+G+B/off>`
+- `respawn`
+- `regen`
 - `setname <name>`
 - `kill`
 - `addorg <x> <y> <z>`
