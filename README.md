@@ -31,6 +31,7 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - `trail <R+G+B/off>`
 - `respawn`
 - `regen`
+- `health <amount>`
 - `setname <name>`
 - `kill`
 - `addorg <x> <y> <z>`
@@ -55,6 +56,7 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - `play <soundpath>`
 - `wear <index>`
 - `clearprops`
+- `mod <index/reset> <value/reset>`
 - {tf_weapon equipping}
 - {datamap manipulation}
 - {all other ent_fire actions}
