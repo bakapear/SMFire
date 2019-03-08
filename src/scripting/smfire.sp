@@ -36,6 +36,12 @@ int iChooseTarget[MAXPLAYERS + 1];
 Handle hChoose[MAXPLAYERS + 1];
 Handle aSelect[MAXPLAYERS + 1];
 bool bSelect[MAXPLAYERS + 1];
+Handle hEquipWearableSDK;
+Handle hItemSchemaSDK;
+Handle hGetAttribSDK;
+Handle hRuntimeAttribSDK;
+Handle hRemoveAttribSDK;
+Handle hDestroyAttribSDK;
 
 public Plugin myinfo =  {
 	name = "SMFire", 
@@ -51,6 +57,7 @@ public void OnPluginStart() {
 		SetFailState("Plugin only works with Team Fortress 2!");
 	}
 	LoadTranslations("common.phrases");
+	LoadSDKHandles("smfire");
 	RegAdminCmd("sm_fire", sm_fire, ADMFLAG_BAN, "[SM] Usage: sm_fire <target> <action> <value>");
 	HookEvent("player_spawn", event_playerspawn, EventHookMode_Post);
 	HookEvent("player_death", event_playerdeath, EventHookMode_Post);
@@ -548,6 +555,10 @@ stock void ent_fire(int client, char[] target, char[] action, char[] value) {
 		int itarget = client;
 		ent_action(client, itarget, action, value, false);
 	}
+	else if (StrEqual(target, "!wep", false)) {
+		int itarget = GetEntPropEnt(client, Prop_Data, "m_hActiveWeapon");
+		ent_action(client, itarget, action, value, false);
+	}
 	else if (StrEqual(target, "!picker", false)) {
 		int itarget = GetClientAimTarget(client, false);
 		ent_action(client, itarget, action, value, false);
@@ -926,6 +937,25 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 				ReplyToCommand(client, "[SM] Target must be a player!");
 		}
 	}
+	else if (StrEqual(action, "health", false)) {
+		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
+		if (StrEqual(ename, "player")) {
+			if (StrEqual(value, "")) {
+				if (iCounter == 1)
+					ReplyToCommand(client, "[SM] health <amount>");
+			}
+			else {
+				int health = StringToInt(value);
+				SetEntProp(itarget, Prop_Data, "m_iHealth", health);
+				if (iCounter == 1)
+					ReplyToCommand(client, "[SM] Added %i health to target target", health);
+			}
+		}
+		else {
+			if (iCounter == 1)
+				ReplyToCommand(client, "[SM] Target must be a player!");
+		}
+	}
 	else if (StrEqual(action, "respawn", false)) {
 		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
 		if (StrEqual(ename, "player")) {
@@ -1282,19 +1312,25 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 		}
 	}
 	else if (StrEqual(action, "color", false)) {
-		char num[32][6]; ExplodeString(value, "+", num, 6, sizeof(num));
-		int red = StringToInt(num[0]);
-		int green = StringToInt(num[1]);
-		int blue = StringToInt(num[2]);
-		int alpha = StringToInt(num[3]);
-		if (StrEqual(num[0], "")) { red = 255; }
-		if (StrEqual(num[1], "")) { green = 255; }
-		if (StrEqual(num[2], "")) { blue = 255; }
-		if (StrEqual(num[3], "")) { alpha = 255; }
-		SetEntityRenderColor(itarget, red, green, blue, alpha);
-		SetEntityRenderMode(itarget, RENDER_TRANSALPHAADD);
-		if (iCounter == 1)
-			ReplyToCommand(client, "[SM] Color set to %i+%i+%i+%i", red, green, blue, alpha);
+		if (StrEqual(value, "")) {
+			if (iCounter == 1)
+				ReplyToCommand(client, "[SM] color <R+G+B+A/reset>");
+		}
+		else {
+			char num[32][6]; ExplodeString(value, "+", num, 6, sizeof(num));
+			int red = StringToInt(num[0]);
+			int green = StringToInt(num[1]);
+			int blue = StringToInt(num[2]);
+			int alpha = StringToInt(num[3]);
+			if (StrEqual(num[0], "")) { red = 255; }
+			if (StrEqual(num[1], "")) { green = 255; }
+			if (StrEqual(num[2], "")) { blue = 255; }
+			if (StrEqual(num[3], "")) { alpha = 255; }
+			SetEntityRenderColor(itarget, red, green, blue, alpha);
+			SetEntityRenderMode(itarget, RENDER_TRANSALPHAADD);
+			if (iCounter == 1)
+				ReplyToCommand(client, "[SM] Color set to %i+%i+%i+%i for target", red, green, blue, alpha);
+		}
 	}
 	else if (StrEqual(action, "setclip", false)) {
 		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
@@ -1310,9 +1346,33 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 					ReplyToCommand(client, "[SM] Set clipsize of active weapon to %i", StringToInt(value));
 			}
 		}
+		else if (StrContains(ename, "tf_weapon") >= 0) {
+			SetEntProp(itarget, Prop_Data, "m_iClip1", StringToInt(value));
+			if (iCounter == 1)
+				ReplyToCommand(client, "[SM] Set clipsize of weapon to %i", StringToInt(value));
+		}
 		else {
 			if (iCounter == 1)
-				ReplyToCommand(client, "[SM] Target must be a player!");
+				ReplyToCommand(client, "[SM] Target must be a player or weapon!");
+		}
+	}
+	else if (StrEqual(action, "firerate", false)) {
+		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
+		if (StrContains(ename, "tf_weapon") >= 0) {
+			if (StrEqual(value, "")) {
+				if (iCounter == 1)
+					ReplyToCommand(client, "[SM] firerate <rate>");
+			}
+			else {
+				float rate = StringToFloat(value);
+				SetAttrib(itarget, 6, rate);
+				if (iCounter == 1)
+					ReplyToCommand(client, "[SM] Set firerate of weapon to %.2f", StringToFloat(value));
+			}
+		}
+		else {
+			if (iCounter == 1)
+				ReplyToCommand(client, "[SM] Target must be a weapon!");
 		}
 	}
 	else if (StrEqual(action, "noclip", false)) {
@@ -1395,7 +1455,7 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 					SetEntPropEnt(entity, Prop_Send, "moveparent", itarget);
 					SetEntProp(entity, Prop_Send, "m_bInitialized", 1);
 					DispatchSpawn(entity);
-					SDKCall(getEquipHandle("smfire"), itarget, entity);
+					SDKCall(hEquipWearableSDK, itarget, entity);
 					SetEntityRenderMode(entity, RENDER_NORMAL);
 					SetEntityRenderColor(entity, 255, 255, 255, 255);
 				}
@@ -1457,6 +1517,38 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 		else {
 			if (iCounter == 1)
 				ReplyToCommand(client, "[SM] Target must be a player!");
+		}
+	}
+	else if (StrEqual(action, "mod", false)) {
+		if (StrEqual(value, "")) {
+			if (iCounter == 1)
+				ReplyToCommand(client, "[SM] mod <attrib index/reset> <value/reset>");
+		}
+		else {
+			char part[32][6]; ExplodeString(value, " ", part, 6, sizeof(part));
+			if (StrEqual(part[0], "reset")) {
+				ResetAttribs(itarget);
+				if (iCounter == 1)
+					ReplyToCommand(client, "[SM] Reset all attributes of target");
+			}
+			else {
+				int index = StringToInt(part[0]);
+				if(StrEqual(part[1], "reset")) {
+					RemoveAttrib(itarget, index);
+					if (iCounter == 1)
+						ReplyToCommand(client, "[SM] Removed attribute %i from target", index);
+				}
+				else if (StrEqual(part[1], "")) {
+					if (iCounter == 1)
+						ReplyToCommand(client, "[SM] mod %s <value/reset>", part[0]);
+				}
+				else {
+					float val = StringToFloat(part[1]);
+					SetAttrib(itarget, index, val);
+					if (iCounter == 1)
+						ReplyToCommand(client, "[SM] Set attribute %i to %.2f for target", index, val);
+				}
+			}
 		}
 	}
 	else if (StrContains(action, "m_", false) == 0) {
@@ -1799,7 +1891,7 @@ stock void ent_trace(int client, float startpos[3], float startang[3], float end
 		else {
 			if (iEntity[client] != 0) {
 				char ename[128]; GetEntityClassname(iEntity[client], ename, sizeof(ename));
-				char part[256][6]; ExplodeString(value, " ", part, 2, sizeof(part), true);
+				char part[256][8]; ExplodeString(value, " ", part, 2, sizeof(part), true);
 				if (StrEqual(part[0], "model", false) || StrEqual(part[0], "parent", false)) {
 					PrecacheModel(part[1]);
 				}
@@ -2280,9 +2372,94 @@ stock void ent_file(int client, char[] action, char[] value) {
 	}
 }
 
-public Handle getEquipHandle(char[] cfg) {
+public void LoadSDKHandles(char[] config) {
+	Handle cfg = LoadGameConfigFile(config);
+	
 	StartPrepSDKCall(SDKCall_Player);
-	PrepSDKCall_SetFromConf(LoadGameConfigFile(cfg), SDKConf_Virtual, "CTFPlayer::EquipWearable");
+	PrepSDKCall_SetFromConf(cfg, SDKConf_Virtual, "CTFPlayer::EquipWearable");
 	PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer);
-	return EndPrepSDKCall();
+	hEquipWearableSDK = EndPrepSDKCall();
+	
+	StartPrepSDKCall(SDKCall_Static);
+	PrepSDKCall_SetFromConf(cfg, SDKConf_Signature, "GEconItemSchema");
+	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);
+	hItemSchemaSDK = EndPrepSDKCall();
+	
+	StartPrepSDKCall(SDKCall_Raw);
+	PrepSDKCall_SetFromConf(cfg, SDKConf_Signature, "CEconItemSchema::GetAttributeDefinition");
+	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);
+	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);
+	hGetAttribSDK = EndPrepSDKCall();
+	
+	StartPrepSDKCall(SDKCall_Raw);
+	PrepSDKCall_SetFromConf(cfg, SDKConf_Signature, "CAttributeList::SetRuntimeAttributeValue");
+	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);
+	PrepSDKCall_AddParameter(SDKType_Float, SDKPass_Plain);
+	hRuntimeAttribSDK = EndPrepSDKCall();
+	
+	StartPrepSDKCall(SDKCall_Raw);
+	PrepSDKCall_SetFromConf(cfg, SDKConf_Signature, "CAttributeList::RemoveAttribute");
+	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);
+	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain); //not a clue what this return is
+	hRemoveAttribSDK = EndPrepSDKCall();
+	
+	StartPrepSDKCall(SDKCall_Raw);
+	PrepSDKCall_SetFromConf(cfg, SDKConf_Signature, "CAttributeList::DestroyAllAttributes");
+	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);
+	hDestroyAttribSDK = EndPrepSDKCall();
+}
+
+public bool SetAttrib(int entity, int index, float value) {
+	if (!IsValidEntity(entity))return false;
+	int offs = GetEntSendPropOffs(entity, "m_AttributeList", true);
+	if (offs <= 0)return false;
+	Address pEntity = GetEntityAddress(entity);
+	if (pEntity == Address_Null)return false;
+	Address pSchema = SDKCall(hItemSchemaSDK);
+	if (pSchema == Address_Null)return false;
+	Address pAttribDef = SDKCall(hGetAttribSDK, pSchema, index);
+	static Address Address_MinimumValid = view_as<Address>(0x10000);
+	if (pAttribDef == Address_Null)return false;
+	int res;
+	if (view_as<int>(pAttribDef) == view_as<int>(Address_MinimumValid))res = 0;
+	if ((view_as<int>(pAttribDef) >>> 31) == (view_as<int>(Address_MinimumValid) >>> 31)) {
+		res = ((view_as<int>(pAttribDef) & 0x7FFFFFFF) > (view_as<int>(Address_MinimumValid) & 0x7FFFFFFF)) ? 1 : -1;
+	}
+	res = ((view_as<int>(pAttribDef) >>> 31) > (view_as<int>(Address_MinimumValid) >>> 31)) ? 1 : -1;
+	if (res >= 0)return false;
+	SDKCall(hRuntimeAttribSDK, pEntity + view_as<Address>(offs), pAttribDef, value);
+	return true;
+}
+
+public bool RemoveAttrib(int entity, int index) {
+	if (!IsValidEntity(entity))return false;
+	int offs = GetEntSendPropOffs(entity, "m_AttributeList", true);
+	if (offs <= 0)return false;
+	Address pEntity = GetEntityAddress(entity);
+	if (pEntity == Address_Null)return false;
+	if (pEntity == Address_Null)return false;
+	Address pSchema = SDKCall(hItemSchemaSDK);
+	if (pSchema == Address_Null)return false;
+	Address pAttribDef = SDKCall(hGetAttribSDK, pSchema, index);
+	static Address Address_MinimumValid = view_as<Address>(0x10000);
+	if (pAttribDef == Address_Null)return false;
+	int res;
+	if (view_as<int>(pAttribDef) == view_as<int>(Address_MinimumValid))res = 0;
+	if ((view_as<int>(pAttribDef) >>> 31) == (view_as<int>(Address_MinimumValid) >>> 31)) {
+		res = ((view_as<int>(pAttribDef) & 0x7FFFFFFF) > (view_as<int>(Address_MinimumValid) & 0x7FFFFFFF)) ? 1 : -1;
+	}
+	res = ((view_as<int>(pAttribDef) >>> 31) > (view_as<int>(Address_MinimumValid) >>> 31)) ? 1 : -1;
+	if (res >= 0)return false;
+	SDKCall(hRemoveAttribSDK, pEntity + view_as<Address>(offs), pAttribDef);
+	return true;
 } 
+
+public bool ResetAttribs(int entity) {
+	if (!IsValidEntity(entity))return false;
+	int offs = GetEntSendPropOffs(entity, "m_AttributeList", true);
+	if (offs <= 0)return false;
+	Address pEntity = GetEntityAddress(entity);
+	if (pEntity == Address_Null)return false;
+	SDKCall(hDestroyAttribSDK, pEntity + view_as<Address>(offs)); //disregard the return (Valve does!)
+	return true;
+}
