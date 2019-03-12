@@ -42,6 +42,7 @@ Handle hGetAttribSDK;
 Handle hRuntimeAttribSDK;
 Handle hRemoveAttribSDK;
 Handle hDestroyAttribSDK;
+Handle hGetAttribIdSDK;
 
 public Plugin myinfo =  {
 	name = "SMFire", 
@@ -1568,8 +1569,12 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 						ReplyToCommand(client, "[SM] Removed attribute %i from target", index);
 				}
 				else if (StrEqual(part[1], "")) {
+					float val = GetAttrib(itarget, index);
 					if (iCounter == 1)
-						ReplyToCommand(client, "[SM] mod %s <value/reset>", part[0]);
+						ReplyToCommand(client, "[SM] mod %s has value: %.2f", part[0], val);
+					else if(iCounter >= 2) {
+						PrintToConsole(client, "[%i] mod %s value: %.2f", itarget, part[0], val);
+					}
 				}
 				else {
 					float val = StringToFloat(part[1]);
@@ -2401,7 +2406,7 @@ stock void ent_file(int client, char[] action, char[] value) {
 	}
 }
 
-public void LoadSDKHandles(char[] config) {
+stock void LoadSDKHandles(char[] config) {
 	Handle cfg = LoadGameConfigFile(config);
 	
 	StartPrepSDKCall(SDKCall_Player);
@@ -2436,9 +2441,15 @@ public void LoadSDKHandles(char[] config) {
 	PrepSDKCall_SetFromConf(cfg, SDKConf_Signature, "CAttributeList::DestroyAllAttributes");
 	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);
 	hDestroyAttribSDK = EndPrepSDKCall();
+	
+	StartPrepSDKCall(SDKCall_Raw);
+	PrepSDKCall_SetFromConf(cfg, SDKConf_Signature, "CAttributeList::GetAttributeByID");
+	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);
+	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);
+	hGetAttribIdSDK = EndPrepSDKCall();
 }
 
-public bool SetAttrib(int entity, int index, float value) {
+stock bool SetAttrib(int entity, int index, float value) {
 	if (!IsValidEntity(entity))return false;
 	int offs = GetEntSendPropOffs(entity, "m_AttributeList", true);
 	if (offs <= 0)return false;
@@ -2460,7 +2471,7 @@ public bool SetAttrib(int entity, int index, float value) {
 	return true;
 }
 
-public bool RemoveAttrib(int entity, int index) {
+stock bool RemoveAttrib(int entity, int index) {
 	if (!IsValidEntity(entity))return false;
 	int offs = GetEntSendPropOffs(entity, "m_AttributeList", true);
 	if (offs <= 0)return false;
@@ -2483,7 +2494,7 @@ public bool RemoveAttrib(int entity, int index) {
 	return true;
 } 
 
-public bool ResetAttribs(int entity) {
+stock bool ResetAttribs(int entity) {
 	if (!IsValidEntity(entity))return false;
 	int offs = GetEntSendPropOffs(entity, "m_AttributeList", true);
 	if (offs <= 0)return false;
@@ -2491,4 +2502,23 @@ public bool ResetAttribs(int entity) {
 	if (pEntity == Address_Null)return false;
 	SDKCall(hDestroyAttribSDK, pEntity + view_as<Address>(offs)); //disregard the return (Valve does!)
 	return true;
+}
+
+stock float GetAttrib(int entity, int index) {
+	if (!IsValidEntity(entity))return 0.0;
+	int offs = GetEntSendPropOffs(entity, "m_AttributeList", true);
+	if (offs <= 0)return 0.0;
+	Address pEntity = GetEntityAddress(entity);
+	if (pEntity == Address_Null) return 0.0;
+	Address pAttribDef = view_as<Address>(SDKCall(hGetAttribIdSDK, pEntity + view_as<Address>(offs), index));
+	static Address Address_MinimumValid = view_as<Address>(0x10000);
+	if (pAttribDef == Address_Null)return 0.0;
+	int res;
+	if (view_as<int>(pAttribDef) == view_as<int>(Address_MinimumValid))res = 0;
+	if ((view_as<int>(pAttribDef) >>> 31) == (view_as<int>(Address_MinimumValid) >>> 31)) {
+		res = ((view_as<int>(pAttribDef) & 0x7FFFFFFF) > (view_as<int>(Address_MinimumValid) & 0x7FFFFFFF)) ? 1 : -1;
+	}
+	res = ((view_as<int>(pAttribDef) >>> 31) > (view_as<int>(Address_MinimumValid) >>> 31)) ? 1 : -1;
+	if (res >= 0) return 0.0;
+	return view_as<float>(LoadFromAddress(pAttribDef + view_as<Address>(8), NumberType_Int32));
 }
