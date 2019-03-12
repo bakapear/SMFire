@@ -1311,6 +1311,29 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 				ReplyToCommand(client, "[SM] Target must be a player!");
 		}
 	}
+	else if (StrEqual(action, "killstreak", false) || StrEqual(action, "ks", false)) {
+		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
+		if (StrEqual(ename, "player")) {
+			if (StrEqual(value, "")) {
+				if (iCounter == 1)
+					ReplyToCommand(client, "[SM] killstreak <amount/reset>");
+			}
+			else if(StrEqual(value, "reset")) {
+				SetEntProp(client, Prop_Send, "m_nStreaks", 0, _, 0);
+				if (iCounter == 1)
+					ReplyToCommand(client, "[SM] Reset killstreak for target");
+			}
+			else {
+				SetEntProp(client, Prop_Send, "m_nStreaks", StringToInt(value), _, 0);
+				if (iCounter == 1)
+					ReplyToCommand(client, "[SM] Set killstreak to %i", StringToInt(value));
+			}
+		}
+		else {
+			if (iCounter == 1)
+				ReplyToCommand(client, "[SM] Target must be a player!");
+		}
+	}
 	else if (StrEqual(action, "color", false)) {
 		if (StrEqual(value, "")) {
 			if (iCounter == 1)
@@ -1326,6 +1349,12 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 			if (StrEqual(num[1], "")) { green = 255; }
 			if (StrEqual(num[2], "")) { blue = 255; }
 			if (StrEqual(num[3], "")) { alpha = 255; }
+			if(StrEqual(value, "reset")) {
+				red = 255;
+				green = 255;
+				blue = 255;
+				alpha = 255;
+			}
 			SetEntityRenderColor(itarget, red, green, blue, alpha);
 			SetEntityRenderMode(itarget, RENDER_TRANSALPHAADD);
 			if (iCounter == 1)
