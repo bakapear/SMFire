@@ -55,6 +55,8 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - `copy <x> <y> <z> <pitch> <yaw> <roll>`
 - `play <soundpath>`
 - `wear <index>`
+- `sheen <sheen index/reset> <effect index>`
+- `ks or killstreak <amount/reset>`
 - `clearprops`
 - `mod <index/reset> <value/reset>` [Attribute List](https://wiki.teamfortress.com/wiki/List_of_item_attributes)
 - {tf_weapon equipping}
