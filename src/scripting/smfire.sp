@@ -1319,7 +1319,7 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 				if (iCounter == 1)
 					ReplyToCommand(client, "[SM] killstreak <amount/reset>");
 			}
-			else if(StrEqual(value, "reset")) {
+			else if (StrEqual(value, "reset")) {
 				SetEntProp(client, Prop_Send, "m_nStreaks", 0, _, 0);
 				if (iCounter == 1)
 					ReplyToCommand(client, "[SM] Reset killstreak for target");
@@ -1333,6 +1333,65 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 		else {
 			if (iCounter == 1)
 				ReplyToCommand(client, "[SM] Target must be a player!");
+		}
+	}
+	else if (StrEqual(action, "sheen", false)) {
+		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
+		if (StrEqual(ename, "player") || StrContains(ename, "tf_weapon") >= 0) {
+			if (StrEqual(value, "")) {
+				if (iCounter == 1)
+					ReplyToCommand(client, "[SM] sheen <sheen index/reset> <effect index>");
+			}
+			else {
+				char part[32][6]; ExplodeString(value, " ", part, 6, sizeof(part));
+				int weapon = itarget;
+				if (StrEqual(ename, "player"))weapon = GetEntPropEnt(itarget, Prop_Data, "m_hActiveWeapon");
+				if (StrEqual(part[0], "reset")) {
+					SetAttrib(weapon, 2025, 0.0);
+					SetAttrib(weapon, 2014, 0.0);
+					if (iCounter == 1)
+						ReplyToCommand(client, "[SM] Reset sheen of weapon");
+				}
+				else {
+					int sheen = StringToInt(part[0]);
+					int effect = StringToInt(part[1]);
+					if (sheen < 0 || effect < 0) {
+						if (iCounter == 1)
+							ReplyToCommand(client, "[SM] Negative values not permitted");
+					}
+					else {
+						char sheens[][] =  {
+							"", 
+							"Team Shine", 
+							"Deadly Daffodil", 
+							"Manndarin", 
+							"Mean Green", 
+							"Agonizing Emerald", 
+							"Villainous Violet", 
+							"Hot Rod"
+						};
+						char effects[][] =  {
+							"", 
+							"Fire Horns", 
+							"Cerebral Discharge", 
+							"Tornado", 
+							"Flames", 
+							"Singularity", 
+							"Incinerator", 
+							"Hypno-Beam"
+						};
+						SetAttrib(weapon, 2025, 3.0);
+						SetAttrib(weapon, 2014, StringToFloat(part[0]));
+						SetAttrib(weapon, 2013, 2001.0 + StringToFloat(part[1]));
+						if (iCounter == 1)
+							ReplyToCommand(client, "[SM] Set sheen to '%s' and effect to '%s'", sheens[sheen], effects[effect]);
+					}
+				}
+			}
+		}
+		else {
+			if (iCounter == 1)
+				ReplyToCommand(client, "[SM] Target must be a player or weapon!");
 		}
 	}
 	else if (StrEqual(action, "color", false)) {
@@ -1350,7 +1409,7 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 			if (StrEqual(num[1], "")) { green = 255; }
 			if (StrEqual(num[2], "")) { blue = 255; }
 			if (StrEqual(num[3], "")) { alpha = 255; }
-			if(StrEqual(value, "reset")) {
+			if (StrEqual(value, "reset")) {
 				red = 255;
 				green = 255;
 				blue = 255;
@@ -1364,22 +1423,18 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 	}
 	else if (StrEqual(action, "setclip", false)) {
 		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
-		if (StrEqual(ename, "player")) {
+		if (StrEqual(ename, "player") || StrContains(ename, "tf_weapon") >= 0) {
 			if (StrEqual(value, "")) {
 				if (iCounter == 1)
 					ReplyToCommand(client, "[SM] setclip <value>");
 			}
 			else {
-				int weapon = GetEntPropEnt(itarget, Prop_Data, "m_hActiveWeapon");
+				int weapon = itarget;
+				if (StrEqual(ename, "player"))weapon = GetEntPropEnt(itarget, Prop_Data, "m_hActiveWeapon");
 				SetEntProp(weapon, Prop_Data, "m_iClip1", StringToInt(value));
 				if (iCounter == 1)
-					ReplyToCommand(client, "[SM] Set clipsize of active weapon to %i", StringToInt(value));
+					ReplyToCommand(client, "[SM] Set clipsize of weapon to %i", StringToInt(value));
 			}
-		}
-		else if (StrContains(ename, "tf_weapon") >= 0) {
-			SetEntProp(itarget, Prop_Data, "m_iClip1", StringToInt(value));
-			if (iCounter == 1)
-				ReplyToCommand(client, "[SM] Set clipsize of weapon to %i", StringToInt(value));
 		}
 		else {
 			if (iCounter == 1)
@@ -1388,21 +1443,23 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 	}
 	else if (StrEqual(action, "firerate", false)) {
 		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
-		if (StrContains(ename, "tf_weapon") >= 0) {
+		if (StrEqual(ename, "player") || StrContains(ename, "tf_weapon") >= 0) {
 			if (StrEqual(value, "")) {
 				if (iCounter == 1)
 					ReplyToCommand(client, "[SM] firerate <rate>");
 			}
 			else {
 				float rate = StringToFloat(value);
-				SetAttrib(itarget, 6, rate);
+				int weapon = itarget;
+				if (StrEqual(ename, "player"))weapon = GetEntPropEnt(itarget, Prop_Data, "m_hActiveWeapon");
+				SetAttrib(weapon, 6, rate);
 				if (iCounter == 1)
 					ReplyToCommand(client, "[SM] Set firerate of weapon to %.2f", StringToFloat(value));
 			}
 		}
 		else {
 			if (iCounter == 1)
-				ReplyToCommand(client, "[SM] Target must be a weapon!");
+				ReplyToCommand(client, "[SM] Target must be a player or weapon!");
 		}
 	}
 	else if (StrEqual(action, "noclip", false)) {
@@ -1563,7 +1620,7 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 			}
 			else {
 				int index = StringToInt(part[0]);
-				if(StrEqual(part[1], "reset")) {
+				if (StrEqual(part[1], "reset")) {
 					RemoveAttrib(itarget, index);
 					if (iCounter == 1)
 						ReplyToCommand(client, "[SM] Removed attribute %i from target", index);
@@ -1572,7 +1629,7 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 					float val = GetAttrib(itarget, index);
 					if (iCounter == 1)
 						ReplyToCommand(client, "[SM] mod %s has value: %.2f", part[0], val);
-					else if(iCounter >= 2) {
+					else if (iCounter >= 2) {
 						PrintToConsole(client, "[%i] mod %s value: %.2f", itarget, part[0], val);
 					}
 				}
@@ -2492,7 +2549,7 @@ stock bool RemoveAttrib(int entity, int index) {
 	if (res >= 0)return false;
 	SDKCall(hRemoveAttribSDK, pEntity + view_as<Address>(offs), pAttribDef);
 	return true;
-} 
+}
 
 stock bool ResetAttribs(int entity) {
 	if (!IsValidEntity(entity))return false;
@@ -2509,7 +2566,7 @@ stock float GetAttrib(int entity, int index) {
 	int offs = GetEntSendPropOffs(entity, "m_AttributeList", true);
 	if (offs <= 0)return 0.0;
 	Address pEntity = GetEntityAddress(entity);
-	if (pEntity == Address_Null) return 0.0;
+	if (pEntity == Address_Null)return 0.0;
 	Address pAttribDef = view_as<Address>(SDKCall(hGetAttribIdSDK, pEntity + view_as<Address>(offs), index));
 	static Address Address_MinimumValid = view_as<Address>(0x10000);
 	if (pAttribDef == Address_Null)return 0.0;
@@ -2519,6 +2576,6 @@ stock float GetAttrib(int entity, int index) {
 		res = ((view_as<int>(pAttribDef) & 0x7FFFFFFF) > (view_as<int>(Address_MinimumValid) & 0x7FFFFFFF)) ? 1 : -1;
 	}
 	res = ((view_as<int>(pAttribDef) >>> 31) > (view_as<int>(Address_MinimumValid) >>> 31)) ? 1 : -1;
-	if (res >= 0) return 0.0;
+	if (res >= 0)return 0.0;
 	return view_as<float>(LoadFromAddress(pAttribDef + view_as<Address>(8), NumberType_Int32));
-}
+} 
