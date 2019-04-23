@@ -36,8 +36,10 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - `kill`
 - `addorg <x> <y> <z>`
 - `addang <pitch> <yaw> <roll>`
+- `addvel <x> <y> <z>`
 - `setorg <x> <y> <z>`
 - `setang <pitch> <yaw> <roll>`
+- `setvel <x> <y> <z>`
 - `class <tfclass>`
 - `setheadscale <scale>`
 - `settorsoscale <scale>`
@@ -76,6 +78,7 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - `choose <filename> [placement: +speed] [cycle: +walk]`
 - `select (0/range) [if no value: select/deselect: +speed]`
 - `deselect (0/range) [if no value: select/deselect: +speed]`
+- `decal <material_path.vmt>`
 ### FILE
 - `create <filename>`
 - `write <filename> <value>`

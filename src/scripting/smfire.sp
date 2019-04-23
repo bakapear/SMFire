@@ -7,8 +7,10 @@
 #include <tf2_stocks>
 
 #define MAX_BUTTONS 25
-#define IN_SPEED	(1 << 17)
-#define IN_WALK		(1 << 18)	
+#define IN_ALT1	(1 << 14)
+#define IN_ALT2	(1 << 15)
+#define IN_SPEED (1 << 17)
+#define IN_WALK	(1 << 18)	
 #define DATA_DIR "data/smfire"
 #define SAVES_DIR "data/smfire/saves"
 #define PROPS_DIR "data/smfire/props"
@@ -212,7 +214,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float veloc
 					TrimString(line);
 					PrecacheModel(line);
 					char auth[256]; GetClientAuthId(client, AuthId_SteamID64, auth, sizeof(auth));
-					char buffer[128]; FormatEx(buffer, sizeof(buffer), "entprop_%s", auth);
+					char buffer[128]; FormatEx(buffer, sizeof(buffer), "enttemp_%s", auth);
 					float playerang[3]; GetClientEyeAngles(client, playerang);
 					float playerorg[3]; GetClientEyePosition(client, playerorg);
 					Handle trace = TR_TraceRayFilterEx(playerorg, playerang, MASK_SHOT, RayType_Infinite, filter_multiple, client);
@@ -237,7 +239,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float veloc
 				}
 				if (button == IN_SPEED && bChoose[client] == true && iChoose[client] != 0 && IsValidEntity(iChoose[client])) {
 					char model[256]; GetEntPropString(iChoose[client], Prop_Data, "m_ModelName", model, sizeof(model));
-					char name[256]; GetEntPropString(iChoose[client], Prop_Data, "m_iName", name, sizeof(name));
+					char auth[256]; GetClientAuthId(client, AuthId_SteamID64, auth, sizeof(auth));
+					char name[128]; FormatEx(name, sizeof(name), "entprop_%s", auth);
 					float entorg[3]; GetEntPropVector(iChoose[client], Prop_Data, "m_vecOrigin", entorg);
 					float entang[3]; GetEntPropVector(iChoose[client], Prop_Data, "m_angRotation", entang);
 					PrecacheModel(model);
@@ -1001,6 +1004,22 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 				ReplyToCommand(client, "[SM] Added angles to target");
 		}
 	}
+	else if (StrEqual(action, "addvel", false)) {
+		if (StrEqual(value, "")) {
+			if (iCounter == 1)
+				ReplyToCommand(client, "[SM] addvel <x> <y> <z>");
+		}
+		else {
+			float entvel[3]; GetEntPropVector(itarget, Prop_Data, "m_vecVelocity", entvel);
+			char num[32][6]; ExplodeString(value, " ", num, 6, sizeof(num));
+			entvel[0] += StringToFloat(num[0]);
+			entvel[1] += StringToFloat(num[1]);
+			entvel[2] += StringToFloat(num[2]);
+			TeleportEntity(itarget, NULL_VECTOR, NULL_VECTOR, entvel);
+			if (iCounter == 1)
+				ReplyToCommand(client, "[SM] Added velocity to target");
+		}
+	}
 	else if (StrEqual(action, "setorg", false)) {
 		if (StrEqual(value, "")) {
 			if (iCounter == 1)
@@ -1031,6 +1050,22 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 			TeleportEntity(itarget, NULL_VECTOR, entang, NULL_VECTOR);
 			if (iCounter == 1)
 				ReplyToCommand(client, "[SM] Set angles of target");
+		}
+	}
+	else if (StrEqual(action, "setvel", false)) {
+		if (StrEqual(value, "")) {
+			if (iCounter == 1)
+				ReplyToCommand(client, "[SM] setvel <x> <y> <z>");
+		}
+		else {
+			float entvel[3]; char num[32][6];
+			ExplodeString(value, " ", num, 6, sizeof(num));
+			entvel[0] = StringToFloat(num[0]);
+			entvel[1] = StringToFloat(num[1]);
+			entvel[2] = StringToFloat(num[2]);
+			TeleportEntity(itarget, NULL_VECTOR, NULL_VECTOR, entvel);
+			if (iCounter == 1)
+				ReplyToCommand(client, "[SM] Set velocity of target");
 		}
 	}
 	else if (StrEqual(action, "copy", false)) {
@@ -2130,6 +2165,19 @@ stock void ent_trace(int client, float startpos[3], float startang[3], float end
 			iChooseTarget[client] = 0;
 			CloseHandle(hChoose[client]);
 			ReplyToCommand(client, "[SM] Stopped choosing!");
+		}
+	}
+	else if (StrEqual(action, "decal", false)) {
+		if (!StrEqual(value, "")) {
+			int index = PrecacheDecal(value, true);
+			TE_Start("World Decal");
+			TE_WriteVector("m_vecOrigin", endpos);
+			TE_WriteNum("m_nIndex", index);
+			TE_SendToAll();
+			ReplyToCommand(client, "[SM] Placed decal '%s' at crosshair", value);
+		}
+		else {
+			ReplyToCommand(client, "[SM] decal <material path>");
 		}
 	}
 	else if (StrEqual(action, "select", false) || StrEqual(action, "deselect", false)) {
