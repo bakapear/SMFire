@@ -1,4 +1,4 @@
-#define PLUGIN_VERSION "2.1"
+#define PLUGIN_VERSION "2.2"
 #pragma semicolon 1
 #pragma newdecls required
 #pragma dynamic 131072
@@ -45,6 +45,7 @@ Handle hRuntimeAttribSDK;
 Handle hRemoveAttribSDK;
 Handle hDestroyAttribSDK;
 Handle hGetAttribIdSDK;
+int iBeam;
 
 public Plugin myinfo =  {
 	name = "SMFire", 
@@ -74,6 +75,7 @@ public void OnPluginStart() {
 		iTrail[i] = -1;
 		iVoicePitch[i] = 100;
 	}
+	iBeam = PrecacheModel("materials/sprites/laserbeam.vmt", true);
 }
 
 public void OnPluginEnd() {
@@ -97,12 +99,6 @@ public void OnPluginEnd() {
 		if (aSelect[i] != INVALID_HANDLE) {
 			while (GetArraySize(aSelect[i]) != 0) {
 				for (int a; a < GetArraySize(aSelect[i]); a++) {
-					if (IsValidEntity(GetArrayCell(aSelect[i], a))) {
-						char ename[128]; GetEntityClassname(GetArrayCell(aSelect[i], a), ename, sizeof(ename));
-						if (StrEqual(ename, "prop_dynamic")) {
-							SetEntityRenderFx(GetArrayCell(aSelect[i], a), view_as<RenderFx>(0));
-						}
-					}
 					RemoveFromArray(aSelect[i], a);
 				}
 			}
@@ -128,6 +124,11 @@ public void OnGameFrame() {
 				SetEntPropFloat(i, Prop_Send, "m_flHandScale", fHandScale[i]);
 			}
 		}
+		if (IsClientInGame(i) && aSelect[i] != INVALID_HANDLE) {
+			for (int j; j < GetArraySize(aSelect[i]); j++) {
+				DrawBoundingBox(i, GetArrayCell(aSelect[i], j));
+			}
+		}
 	}
 }
 
@@ -137,12 +138,6 @@ public void OnClientDisconnect(int client) {
 	if (aSelect[client] != INVALID_HANDLE) {
 		while (GetArraySize(aSelect[client]) != 0) {
 			for (int i; i < GetArraySize(aSelect[client]); i++) {
-				if (IsValidEntity(GetArrayCell(aSelect[client], i))) {
-					char ename[128]; GetEntityClassname(GetArrayCell(aSelect[client], i), ename, sizeof(ename));
-					if (StrEqual(ename, "prop_dynamic")) {
-						SetEntityRenderFx(GetArrayCell(aSelect[client], i), view_as<RenderFx>(0));
-					}
-				}
 				RemoveFromArray(aSelect[client], i);
 			}
 		}
@@ -268,13 +263,10 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float veloc
 								}
 							}
 							if (index != -1) {
-								SetEntityRenderMode(entity, RENDER_TRANSALPHAADD);
-								SetEntityRenderFx(GetArrayCell(aSelect[client], index), view_as<RenderFx>(0));
 								ReplyToCommand(client, "[SM] Deselected %i", GetArrayCell(aSelect[client], index));
 								RemoveFromArray(aSelect[client], index);
 							}
 							else {
-								SetEntityRenderFx(entity, view_as<RenderFx>(4));
 								ReplyToCommand(client, "[SM] Selected %i", entity);
 								PushArrayCell(aSelect[client], entity);
 							}
@@ -386,12 +378,6 @@ public Action event_roundstart(Handle event, char[] name, bool dontbroadcast) {
 			if (aSelect[i] != INVALID_HANDLE) {
 				while (GetArraySize(aSelect[i]) != 0) {
 					for (int a; a < GetArraySize(aSelect[i]); a++) {
-						if (IsValidEntity(GetArrayCell(aSelect[i], a))) {
-							char ename[128]; GetEntityClassname(GetArrayCell(aSelect[i], a), ename, sizeof(ename));
-							if (StrEqual(ename, "prop_dynamic")) {
-								SetEntityRenderFx(GetArrayCell(aSelect[i], a), view_as<RenderFx>(0));
-							}
-						}
 						RemoveFromArray(aSelect[i], a);
 					}
 				}
@@ -639,12 +625,6 @@ stock void ent_fire(int client, char[] target, char[] action, char[] value) {
 			if (aSelect[client] != INVALID_HANDLE) {
 				while (GetArraySize(aSelect[client]) != 0) {
 					for (int i; i < GetArraySize(aSelect[client]); i++) {
-						if (IsValidEntity(GetArrayCell(aSelect[client], i))) {
-							char ename[128]; GetEntityClassname(GetArrayCell(aSelect[client], i), ename, sizeof(ename));
-							if (StrEqual(ename, "prop_dynamic")) {
-								SetEntityRenderFx(GetArrayCell(aSelect[client], i), view_as<RenderFx>(0));
-							}
-						}
 						RemoveFromArray(aSelect[client], i);
 						num++;
 					}
@@ -2196,8 +2176,6 @@ stock void ent_trace(int client, float startpos[3], float startang[3], float end
 							}
 						}
 						if (index != -1) {
-							SetEntityRenderMode(entity, RENDER_TRANSALPHAADD);
-							SetEntityRenderFx(GetArrayCell(aSelect[client], index), view_as<RenderFx>(0));
 							ReplyToCommand(client, "[SM] Deselected %i", GetArrayCell(aSelect[client], index));
 							RemoveFromArray(aSelect[client], index);
 						}
@@ -2235,8 +2213,6 @@ stock void ent_trace(int client, float startpos[3], float startang[3], float end
 									}
 									if (index != -1) {
 										if (StrEqual(action, "deselect", false)) {
-											SetEntityRenderMode(e, RENDER_TRANSALPHAADD);
-											SetEntityRenderFx(GetArrayCell(aSelect[client], index), view_as<RenderFx>(0));
 											PrintToConsole(client, "[SM] Deselected %i", GetArrayCell(aSelect[client], index));
 											RemoveFromArray(aSelect[client], index);
 										}
@@ -2626,4 +2602,67 @@ stock float GetAttrib(int entity, int index) {
 	res = ((view_as<int>(pAttribDef) >>> 31) > (view_as<int>(Address_MinimumValid) >>> 31)) ? 1 : -1;
 	if (res >= 0)return 0.0;
 	return view_as<float>(LoadFromAddress(pAttribDef + view_as<Address>(8), NumberType_Int32));
+}
+
+stock void RotateVectorAroundPoint(float vector[3], float origin[3], float angles[3]) {
+	SubtractVectors(vector, origin, vector);
+	float pitch = DegToRad(angles[0]);
+	float yaw = DegToRad(angles[1]);
+	float roll = DegToRad(angles[2]);
+	float cosa = Cosine(yaw);
+	float sina = Sine(yaw);
+	float cosb = Cosine(pitch);
+	float sinb = Sine(pitch);
+	float cosc = Cosine(roll);
+	float sinc = Sine(roll);
+	float Axx = cosa * cosb;
+	float Axy = cosa * sinb * sinc - sina * cosc;
+	float Axz = cosa * sinb * cosc + sina * sinc;
+	float Ayx = sina * cosb;
+	float Ayy = sina * sinb * sinc + cosa * cosc;
+	float Ayz = sina * sinb * cosc - cosa * sinc;
+	float Azx = -sinb;
+	float Azy = cosb * sinc;
+	float Azz = cosb * cosc;
+	float px = vector[0];
+	float py = vector[1];
+	float pz = vector[2];
+	vector[0] = Axx * px + Axy * py + Axz * pz;
+	vector[1] = Ayx * px + Ayy * py + Ayz * pz;
+	vector[2] = Azx * px + Azy * py + Azz * pz;
+	AddVectors(vector, origin, vector);
+}
+
+public void DrawBoundingBox(int client, int target) {
+	if (target < 1 || !IsValidEntity(target))return;
+	float mins[3]; GetEntPropVector(target, Prop_Data, "m_vecMins", mins);
+	float maxs[3]; GetEntPropVector(target, Prop_Data, "m_vecMaxs", maxs);
+	float org[3]; GetEntPropVector(target, Prop_Data, "m_vecAbsOrigin", org);
+	float ang[3]; GetEntPropVector(target, Prop_Data, "m_angAbsRotation", ang);
+	
+	//TLB = Top Left Back
+	//BRF = Bottom Right Front
+	float TLB[3]; TLB[0] = org[0] + maxs[0]; TLB[1] = org[1] + maxs[1]; TLB[2] = org[2] + maxs[2]; RotateVectorAroundPoint(TLB, org, ang);
+	float TLF[3]; TLF[0] = org[0] + mins[0]; TLF[1] = org[1] + maxs[1]; TLF[2] = org[2] + maxs[2]; RotateVectorAroundPoint(TLF, org, ang);
+	float TRB[3]; TRB[0] = org[0] + maxs[0]; TRB[1] = org[1] + mins[1]; TRB[2] = org[2] + maxs[2]; RotateVectorAroundPoint(TRB, org, ang);
+	float BLB[3]; BLB[0] = org[0] + maxs[0]; BLB[1] = org[1] + maxs[1]; BLB[2] = org[2] + mins[2]; RotateVectorAroundPoint(BLB, org, ang);
+	float BRF[3]; BRF[0] = org[0] + mins[0]; BRF[1] = org[1] + mins[1]; BRF[2] = org[2] + mins[2]; RotateVectorAroundPoint(BRF, org, ang);
+	float BRB[3]; BRB[0] = org[0] + maxs[0]; BRB[1] = org[1] + mins[1]; BRB[2] = org[2] + mins[2]; RotateVectorAroundPoint(BRB, org, ang);
+	float BLF[3]; BLF[0] = org[0] + mins[0]; BLF[1] = org[1] + maxs[1]; BLF[2] = org[2] + mins[2]; RotateVectorAroundPoint(BLF, org, ang);
+	float TRF[3]; TRF[0] = org[0] + mins[0]; TRF[1] = org[1] + mins[1]; TRF[2] = org[2] + maxs[2]; RotateVectorAroundPoint(TRF, org, ang);
+	
+	TE_SetupBeamPoints(TLB, TRB, iBeam, 0, 0, 0, 0.1, 2.0, 2.0, 10, 0.0, { 0, 0, 255, 255 }, 0); TE_SendToClient(client);
+	TE_SetupBeamPoints(TRB, TRF, iBeam, 0, 0, 0, 0.1, 2.0, 2.0, 10, 0.0, { 0, 0, 255, 255 }, 0); TE_SendToClient(client);
+	TE_SetupBeamPoints(TRF, TLF, iBeam, 0, 0, 0, 0.1, 2.0, 2.0, 10, 0.0, { 0, 0, 255, 255 }, 0); TE_SendToClient(client);
+	TE_SetupBeamPoints(TLF, TLB, iBeam, 0, 0, 0, 0.1, 2.0, 2.0, 10, 0.0, { 0, 0, 255, 255 }, 0); TE_SendToClient(client);
+	
+	TE_SetupBeamPoints(BLB, BRB, iBeam, 0, 0, 0, 0.1, 2.0, 2.0, 10, 0.0, { 0, 0, 255, 255 }, 0); TE_SendToClient(client);
+	TE_SetupBeamPoints(BRB, BRF, iBeam, 0, 0, 0, 0.1, 2.0, 2.0, 10, 0.0, { 0, 0, 255, 255 }, 0); TE_SendToClient(client);
+	TE_SetupBeamPoints(BRF, BLF, iBeam, 0, 0, 0, 0.1, 2.0, 2.0, 10, 0.0, { 0, 0, 255, 255 }, 0); TE_SendToClient(client);
+	TE_SetupBeamPoints(BLF, BLB, iBeam, 0, 0, 0, 0.1, 2.0, 2.0, 10, 0.0, { 0, 0, 255, 255 }, 0); TE_SendToClient(client);
+	
+	TE_SetupBeamPoints(TLB, BLB, iBeam, 0, 0, 0, 0.1, 2.0, 2.0, 10, 0.0, { 0, 0, 255, 255 }, 0); TE_SendToClient(client);
+	TE_SetupBeamPoints(TRB, BRB, iBeam, 0, 0, 0, 0.1, 2.0, 2.0, 10, 0.0, { 0, 0, 255, 255 }, 0); TE_SendToClient(client);
+	TE_SetupBeamPoints(TRF, BRF, iBeam, 0, 0, 0, 0.1, 2.0, 2.0, 10, 0.0, { 0, 0, 255, 255 }, 0); TE_SendToClient(client);
+	TE_SetupBeamPoints(TLF, BLF, iBeam, 0, 0, 0, 0.1, 2.0, 2.0, 10, 0.0, { 0, 0, 255, 255 }, 0); TE_SendToClient(client);
 } 
