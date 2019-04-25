@@ -1,4 +1,4 @@
-#define PLUGIN_VERSION "2.2"
+#define PLUGIN_VERSION "2.3"
 #pragma semicolon 1
 #pragma newdecls required
 #pragma dynamic 131072
@@ -35,6 +35,10 @@ bool bMove[MAXPLAYERS + 1];
 bool bChoose[MAXPLAYERS + 1];
 int iChoose[MAXPLAYERS + 1];
 int iChooseTarget[MAXPLAYERS + 1];
+bool bWarp[MAXPLAYERS + 1];
+int iWarp[MAXPLAYERS + 1];
+int iWarpMode[MAXPLAYERS + 1];
+float fWarpAmount[MAXPLAYERS + 1];
 Handle hChoose[MAXPLAYERS + 1];
 Handle aSelect[MAXPLAYERS + 1];
 bool bSelect[MAXPLAYERS + 1];
@@ -279,6 +283,32 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float veloc
 						ReplyToCommand(client, "[SM] Invalid entity!");
 					}
 				}
+				if (button == IN_SPEED && bWarp[client] == true) {
+					if (iWarpMode[client] == 0) {
+						iWarpMode[client] = 1;
+						ReplyToCommand(client, "[SM] Changed WarpMode to Angles");
+					}
+					else {
+						iWarpMode[client] = 0;
+						ReplyToCommand(client, "[SM] Changed WarpMode to Origin");
+					}
+				}
+				if (bWarp[client] == true) {
+					float vec[3];
+					if (iWarpMode[client] == 0)GetEntPropVector(iWarp[client], Prop_Data, "m_vecAbsOrigin", vec);
+					else GetEntPropVector(iWarp[client], Prop_Data, "m_angAbsRotation", vec);
+					float amount = fWarpAmount[client];
+					switch (button) {
+						case IN_FORWARD: { vec[0] += amount; }
+						case IN_BACK: { vec[0] -= amount; }
+						case IN_MOVELEFT: { vec[1] += amount; }
+						case IN_MOVERIGHT: { vec[1] -= amount; }
+						case IN_JUMP: { vec[2] += amount; }
+						case IN_DUCK: { vec[2] -= amount; }
+					}
+					if (iWarpMode[client] == 0)TeleportEntity(iWarp[client], vec, NULL_VECTOR, NULL_VECTOR);
+					else TeleportEntity(iWarp[client], NULL_VECTOR, vec, NULL_VECTOR);
+				}
 			}
 		}
 	}
@@ -516,6 +546,14 @@ stock void StopActiveActions(int client) {
 	if (bSelect[client] == true) {
 		bSelect[client] = false;
 		ReplyToCommand(client, "[SM] Stopped selecting!");
+	}
+	if (bWarp[client] == true) {
+		SetEntityMoveType(client, MOVETYPE_WALK);
+		bWarp[client] = false;
+		iWarp[client] = 0;
+		fWarpAmount[client] = 0.0;
+		iWarpMode[client] = 0;
+		ReplyToCommand(client, "[SM] Stopped warping!");
 	}
 }
 
@@ -1515,6 +1553,44 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 				ReplyToCommand(client, "[SM] Target must be a player!");
 		}
 	}
+	else if (StrEqual(action, "freeze", false)) {
+		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
+		if (StrEqual(ename, "player")) {
+			if (StrEqual(value, "")) {
+				MoveType movetype = GetEntityMoveType(itarget);
+				if (movetype != MOVETYPE_NONE) {
+					SetEntityMoveType(itarget, MOVETYPE_NONE);
+					if (iCounter == 1)
+						ReplyToCommand(client, "[SM] Froze target");
+				}
+				else {
+					SetEntityMoveType(itarget, MOVETYPE_WALK);
+					if (iCounter == 1)
+						ReplyToCommand(client, "[SM] Unfroze target");
+				}
+			}
+			else {
+				if (StrEqual(value, "on")) {
+					SetEntityMoveType(itarget, MOVETYPE_NONE);
+					if (iCounter == 1)
+						ReplyToCommand(client, "[SM] Froze target");
+				}
+				else if (StrEqual(value, "off")) {
+					SetEntityMoveType(itarget, MOVETYPE_WALK);
+					if (iCounter == 1)
+						ReplyToCommand(client, "[SM] Unfroze target");
+				}
+				else {
+					if (iCounter == 1)
+						ReplyToCommand(client, "[SM] freeze <on/off>");
+				}
+			}
+		}
+		else {
+			if (iCounter == 1)
+				ReplyToCommand(client, "[SM] Target must be a player!");
+		}
+	}
 	else if (StrEqual(action, "play", false)) {
 		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
 		if (StrEqual(ename, "player")) {
@@ -2080,6 +2156,29 @@ stock void ent_trace(int client, float startpos[3], float startang[3], float end
 			iShift[client] = 0;
 			iShiftMode[client] = 0;
 			ReplyToCommand(client, "[SM] Stopped shifting.");
+		}
+	}
+	else if (StrEqual(action, "warp", false)) {
+		if (bWarp[client] == false) {
+			if (IsValidEntity(entity) && entity > 0) {
+				StopActiveActions(client);
+				bWarp[client] = true;
+				iWarp[client] = entity;
+				SetEntityMoveType(client, MOVETYPE_NONE);
+				fWarpAmount[client] = StringToFloat(value);
+				ReplyToCommand(client, "[SM] Started warping %i with %.2f", iWarp[client], fWarpAmount[client]);
+				ReplyToCommand(client, "[SM] Warp: W/A/S/D/JUMP/DUCK | Swap Mode: +speed");
+			}
+			else {
+				ReplyToCommand(client, "[SM] Invalid entity!");
+			}
+		}
+		else {
+			SetEntityMoveType(client, MOVETYPE_WALK);
+			bWarp[client] = false;
+			iWarp[client] = 0;
+			fWarpAmount[client] = 0.0;
+			ReplyToCommand(client, "[SM] Stopped warping.");
 		}
 	}
 	else if (StrEqual(action, "move", false)) {

@@ -53,6 +53,7 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - `color <R+G+B+A> [0-255]`
 - `setclip <value>`
 - `noclip (on/off)`
+- `freeze (on/off)`
 - `teleport <target> [only single targets]`
 - `copy <x> <y> <z> <pitch> <yaw> <roll>`
 - `play <soundpath>`
@@ -75,6 +76,7 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - `paste`
 - `shift (value) [copy placement: +speed] [value - rotation offset]`
 - `move [place copy: +speed] [placement: +walk]`
+- `warp (amount) [warp: W/A/S/D/JUMP/DUCK] [swap mode: +speed (Origin/Angles)]`
 - `choose <filename> [placement: +speed] [cycle: +walk]`
 - `select (0/range) [if no value: select/deselect: +speed]`
 - `deselect (0/range) [if no value: select/deselect: +speed]`
