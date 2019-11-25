@@ -130,7 +130,7 @@ public void OnGameFrame() {
 		}
 		if (IsClientInGame(i) && aSelect[i] != INVALID_HANDLE) {
 			for (int j; j < GetArraySize(aSelect[i]); j++) {
-				DrawBoundingBox(i, GetArrayCell(aSelect[i], j));
+				DrawBoundingBox(i, GetArrayCell(aSelect[i], j), 0.5, { 0, 0, 255, 255 } );
 			}
 		}
 	}
@@ -1447,6 +1447,25 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 				ReplyToCommand(client, "[SM] Target must be a player or weapon!");
 		}
 	}
+	else if (StrEqual(action, "index", false)) {
+		char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
+		if (StrEqual(ename, "player") || StrContains(ename, "tf_weapon") >= 0) {
+			if (StrEqual(value, "")) {
+				if (iCounter == 1)
+					ReplyToCommand(client, "[SM] index <item index>");
+			}
+			else {
+				int weapon = itarget;
+				if (StrEqual(ename, "player"))weapon = GetEntPropEnt(itarget, Prop_Data, "m_hActiveWeapon");
+				SetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex", StringToInt(value));
+				ReplyToCommand(client, "[SM] Set active weapon's index to \"%s\"", value);
+			}
+		}
+		else {
+			if (iCounter == 1)
+				ReplyToCommand(client, "[SM] Target must be a player or weapon!");
+		}
+	}
 	else if (StrEqual(action, "color", false)) {
 		if (StrEqual(value, "")) {
 			if (iCounter == 1)
@@ -2087,18 +2106,33 @@ stock void ent_trace(int client, float startpos[3], float startang[3], float end
 		}
 	}
 	else if (StrEqual(action, "spawn", false)) {
-		if (iEntity[client] != 0) {
-			char ename[128]; GetEntityClassname(iEntity[client], ename, sizeof(ename));
-			ReplyToCommand(client, "[SM] Entity %i > %s spawned.", iEntity[client], ename);
-			DispatchSpawn(iEntity[client]);
-			ActivateEntity(iEntity[client]);
-			float propang[3];
-			propang[1] = 180 + startang[1];
-			TeleportEntity(iEntity[client], endpos, propang, NULL_VECTOR);
-			iEntity[client] = 0;
-		}
-		else {
-			ReplyToCommand(client, "[SM] No entity created yet.", iEntity[client]);
+		if (StrEqual(value, "")) {
+			if (iEntity[client] != 0) {
+				char ename[128]; GetEntityClassname(iEntity[client], ename, sizeof(ename));
+				ReplyToCommand(client, "[SM] Entity %i > %s spawned.", iEntity[client], ename);
+				DispatchSpawn(iEntity[client]);
+				ActivateEntity(iEntity[client]);
+				float propang[3];
+				propang[1] = 180 + startang[1];
+				TeleportEntity(iEntity[client], endpos, propang, NULL_VECTOR);
+				iEntity[client] = 0;
+			}
+			else {
+				ReplyToCommand(client, "[SM] No entity created yet.", iEntity[client]);
+			}
+		} else {
+			int ent = CreateEntityByName(value);
+			if (ent != -1) {
+				DispatchSpawn(ent);
+				ActivateEntity(ent);
+				float propang[3];
+				propang[1] = 180 + startang[1];
+				TeleportEntity(ent, endpos, propang, NULL_VECTOR);
+				ReplyToCommand(client, "[SM] Entity %i > %s spawned.", ent, value);
+			}
+			else {
+				ReplyToCommand(client, "[SM] Classname \"%s\" is invalid!", value);
+			}
 		}
 	}
 	else if (StrEqual(action, "copy", false)) {
@@ -2259,6 +2293,31 @@ stock void ent_trace(int client, float startpos[3], float startang[3], float end
 			ReplyToCommand(client, "[SM] decal <material path>");
 		}
 	}
+	else if (StrEqual(action, "drop", false)) {
+		int weapon = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+		char model[256]; ReadStringTable(FindStringTable("modelprecache"), GetEntProp(weapon, Prop_Send, "m_iWorldModelIndex"), model, sizeof(model));
+		if (!IsModelPrecached(model))PrecacheModel(model);
+		int ent = CreateEntityByName("tf_dropped_weapon");
+		if (ent != -1) {
+			SetEntityModel(ent, model);
+			SetEntProp(ent, Prop_Send, "m_bInitialized", 1);
+			SetEntProp(ent, Prop_Send, "m_bOnlyIterateItemViewAttributes", GetEntProp(weapon, Prop_Send, "m_bOnlyIterateItemViewAttributes"));
+			SetEntProp(ent, Prop_Send, "m_iItemDefinitionIndex", GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex"));
+			SetEntProp(ent, Prop_Send, "m_iEntityLevel", GetEntProp(weapon, Prop_Send, "m_iEntityLevel"));
+			SetEntProp(ent, Prop_Send, "m_iItemIDHigh", GetEntProp(weapon, Prop_Send, "m_iItemIDHigh"));
+			SetEntProp(ent, Prop_Send, "m_iItemIDLow", GetEntProp(weapon, Prop_Send, "m_iItemIDLow"));
+			SetEntProp(ent, Prop_Send, "m_iAccountID", GetEntProp(weapon, Prop_Send, "m_iAccountID"));
+			SetEntProp(ent, Prop_Send, "m_iEntityQuality", GetEntProp(weapon, Prop_Send, "m_iEntityQuality"));
+			SetEntProp(ent, Prop_Send, "m_iTeamNumber", GetEntProp(weapon, Prop_Send, "m_iTeamNumber"));
+			if (HasEntProp(weapon, Prop_Send, "m_flChargeLevel")) {
+				SetEntPropFloat(ent, Prop_Send, "m_flChargeLevel", GetEntPropFloat(weapon, Prop_Send, "m_flChargeLevel"));
+			}
+			ActivateEntity(ent);
+			DispatchSpawn(ent);
+			TeleportEntity(ent, endpos, NULL_VECTOR, NULL_VECTOR);
+			ReplyToCommand(client, "Dropped weapon at crosshair.");
+		}
+	}
 	else if (StrEqual(action, "select", false) || StrEqual(action, "deselect", false)) {
 		if (!StrEqual(value, "")) {
 			if (aSelect[client] == INVALID_HANDLE) {
@@ -2279,7 +2338,6 @@ stock void ent_trace(int client, float startpos[3], float startang[3], float end
 							RemoveFromArray(aSelect[client], index);
 						}
 						else {
-							SetEntityRenderFx(entity, view_as<RenderFx>(4));
 							ReplyToCommand(client, "[SM] Selected %i", entity);
 							PushArrayCell(aSelect[client], entity);
 						}
@@ -2318,7 +2376,6 @@ stock void ent_trace(int client, float startpos[3], float startang[3], float end
 									}
 									else {
 										if (StrEqual(action, "select", false)) {
-											SetEntityRenderFx(e, view_as<RenderFx>(4));
 											PrintToConsole(client, "[SM] Selected %i", e);
 											PushArrayCell(aSelect[client], e);
 										}
@@ -2732,7 +2789,7 @@ stock void RotateVectorAroundPoint(float vector[3], float origin[3], float angle
 	AddVectors(vector, origin, vector);
 }
 
-public void DrawBoundingBox(int client, int target) {
+public void DrawBoundingBox(int client, int target, float size, int color[4]) {
 	if (target < 1 || !IsValidEntity(target))return;
 	float mins[3]; GetEntPropVector(target, Prop_Data, "m_vecMins", mins);
 	float maxs[3]; GetEntPropVector(target, Prop_Data, "m_vecMaxs", maxs);
@@ -2750,18 +2807,18 @@ public void DrawBoundingBox(int client, int target) {
 	float BLF[3]; BLF[0] = org[0] + mins[0]; BLF[1] = org[1] + maxs[1]; BLF[2] = org[2] + mins[2]; RotateVectorAroundPoint(BLF, org, ang);
 	float TRF[3]; TRF[0] = org[0] + mins[0]; TRF[1] = org[1] + mins[1]; TRF[2] = org[2] + maxs[2]; RotateVectorAroundPoint(TRF, org, ang);
 	
-	TE_SetupBeamPoints(TLB, TRB, iBeam, 0, 0, 0, 0.1, 2.0, 2.0, 10, 0.0, { 0, 0, 255, 255 }, 0); TE_SendToClient(client);
-	TE_SetupBeamPoints(TRB, TRF, iBeam, 0, 0, 0, 0.1, 2.0, 2.0, 10, 0.0, { 0, 0, 255, 255 }, 0); TE_SendToClient(client);
-	TE_SetupBeamPoints(TRF, TLF, iBeam, 0, 0, 0, 0.1, 2.0, 2.0, 10, 0.0, { 0, 0, 255, 255 }, 0); TE_SendToClient(client);
-	TE_SetupBeamPoints(TLF, TLB, iBeam, 0, 0, 0, 0.1, 2.0, 2.0, 10, 0.0, { 0, 0, 255, 255 }, 0); TE_SendToClient(client);
+	TE_SetupBeamPoints(TLB, TRB, iBeam, 0, 0, 0, 0.1, size, size, 10, 0.0, color, 0); TE_SendToClient(client);
+	TE_SetupBeamPoints(TRB, TRF, iBeam, 0, 0, 0, 0.1, size, size, 10, 0.0, color, 0); TE_SendToClient(client);
+	TE_SetupBeamPoints(TRF, TLF, iBeam, 0, 0, 0, 0.1, size, size, 10, 0.0, color, 0); TE_SendToClient(client);
+	TE_SetupBeamPoints(TLF, TLB, iBeam, 0, 0, 0, 0.1, size, size, 10, 0.0, color, 0); TE_SendToClient(client);
 	
-	TE_SetupBeamPoints(BLB, BRB, iBeam, 0, 0, 0, 0.1, 2.0, 2.0, 10, 0.0, { 0, 0, 255, 255 }, 0); TE_SendToClient(client);
-	TE_SetupBeamPoints(BRB, BRF, iBeam, 0, 0, 0, 0.1, 2.0, 2.0, 10, 0.0, { 0, 0, 255, 255 }, 0); TE_SendToClient(client);
-	TE_SetupBeamPoints(BRF, BLF, iBeam, 0, 0, 0, 0.1, 2.0, 2.0, 10, 0.0, { 0, 0, 255, 255 }, 0); TE_SendToClient(client);
-	TE_SetupBeamPoints(BLF, BLB, iBeam, 0, 0, 0, 0.1, 2.0, 2.0, 10, 0.0, { 0, 0, 255, 255 }, 0); TE_SendToClient(client);
+	TE_SetupBeamPoints(BLB, BRB, iBeam, 0, 0, 0, 0.1, size, size, 10, 0.0, color, 0); TE_SendToClient(client);
+	TE_SetupBeamPoints(BRB, BRF, iBeam, 0, 0, 0, 0.1, size, size, 10, 0.0, color, 0); TE_SendToClient(client);
+	TE_SetupBeamPoints(BRF, BLF, iBeam, 0, 0, 0, 0.1, size, size, 10, 0.0, color, 0); TE_SendToClient(client);
+	TE_SetupBeamPoints(BLF, BLB, iBeam, 0, 0, 0, 0.1, size, size, 10, 0.0, color, 0); TE_SendToClient(client);
 	
-	TE_SetupBeamPoints(TLB, BLB, iBeam, 0, 0, 0, 0.1, 2.0, 2.0, 10, 0.0, { 0, 0, 255, 255 }, 0); TE_SendToClient(client);
-	TE_SetupBeamPoints(TRB, BRB, iBeam, 0, 0, 0, 0.1, 2.0, 2.0, 10, 0.0, { 0, 0, 255, 255 }, 0); TE_SendToClient(client);
-	TE_SetupBeamPoints(TRF, BRF, iBeam, 0, 0, 0, 0.1, 2.0, 2.0, 10, 0.0, { 0, 0, 255, 255 }, 0); TE_SendToClient(client);
-	TE_SetupBeamPoints(TLF, BLF, iBeam, 0, 0, 0, 0.1, 2.0, 2.0, 10, 0.0, { 0, 0, 255, 255 }, 0); TE_SendToClient(client);
+	TE_SetupBeamPoints(TLB, BLB, iBeam, 0, 0, 0, 0.1, size, size, 10, 0.0, color, 0); TE_SendToClient(client);
+	TE_SetupBeamPoints(TRB, BRB, iBeam, 0, 0, 0, 0.1, size, size, 10, 0.0, color, 0); TE_SendToClient(client);
+	TE_SetupBeamPoints(TRF, BRF, iBeam, 0, 0, 0, 0.1, size, size, 10, 0.0, color, 0); TE_SendToClient(client);
+	TE_SetupBeamPoints(TLF, BLF, iBeam, 0, 0, 0, 0.1, size, size, 10, 0.0, color, 0); TE_SendToClient(client);
 } 

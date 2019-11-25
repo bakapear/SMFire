@@ -59,6 +59,7 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - `play <soundpath>`
 - `wear <index>`
 - `sheen <sheen index/reset> <effect index>`
+- `index <item index>`
 - `ks or killstreak <amount/reset>`
 - `clearprops`
 - `mod <index/reset> <value/reset>` [Attribute List](https://wiki.teamfortress.com/wiki/List_of_item_attributes)
@@ -70,7 +71,7 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - `prop <modelpath>`
 - `create <classname>`
 - `value <key> <value>`
-- `spawn `
+- `spawn`
 - `delete`
 - `copy`
 - `paste`
@@ -81,6 +82,7 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - `select (0/range) [if no value: select/deselect: +speed]`
 - `deselect (0/range) [if no value: select/deselect: +speed]`
 - `decal <material_path.vmt>`
+- `drop`
 ### FILE
 - `create <filename>`
 - `write <filename> <value>`
@@ -116,7 +118,7 @@ Lets you equip any tf_weapon with any index. Works with multiple players!
 [List of Indexes](https://wiki.alliedmods.net/Team_fortress_2_item_definition_indexes)
 
 Examples:
-- `tf_weapon_rocketlauncher_directhit 127` gives directhit
-- `tf_weapon_knife 638` gives sharp dresser
-- `tf_weapon_handgun_scout_primary 457` gives you a weird one-shot Force-A-Nature?
-- `tf_weapon_pep_brawler_blaster 294` gives you lugermorph scattergun
+- `sm_fire !self tf_weapon_rocketlauncher_directhit 127` gives directhit
+- `sm_fire !self tf_weapon_knife 638` gives sharp dresser
+- `sm_fire !self tf_weapon_handgun_scout_primary 457` gives you a weird one-shot Force-A-Nature?
+- `sm_fire !self tf_weapon_pep_brawler_blaster 294` gives you lugermorph scattergun
