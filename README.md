@@ -5,6 +5,8 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 
 [Preview Video](https://www.youtube.com/watch?v=EV41hXWuYRU)
 
+(The basic.smx is not needed)
+
 ## TARGETS
 #### SINGLE
 - !self
@@ -62,7 +64,7 @@ At first the plugin might seem a bit complicated, because it doesn't show a list
 - `index <item index>`
 - `ks or killstreak <amount/reset>`
 - `clearprops`
-- `mod <index/reset> <value/reset>` [Attribute List](https://wiki.teamfortress.com/wiki/List_of_item_attributes)
+- `mod <index/list/reset> <value/reset>` [Attribute List](https://wiki.teamfortress.com/wiki/List_of_item_attributes)
 - {tf_weapon equipping}
 - {datamap manipulation}
 - {all other ent_fire actions}
