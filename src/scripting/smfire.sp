@@ -1,4 +1,4 @@
-#define PLUGIN_VERSION "2.3"
+#define PLUGIN_VERSION "2.4"
 #pragma semicolon 1
 #pragma newdecls required
 #pragma dynamic 131072
@@ -49,6 +49,7 @@ Handle hRuntimeAttribSDK;
 Handle hRemoveAttribSDK;
 Handle hDestroyAttribSDK;
 Handle hGetAttribIdSDK;
+Handle hItemDefSDK;
 int iBeam;
 
 public Plugin myinfo =  {
@@ -130,7 +131,7 @@ public void OnGameFrame() {
 		}
 		if (IsClientInGame(i) && aSelect[i] != INVALID_HANDLE) {
 			for (int j; j < GetArraySize(aSelect[i]); j++) {
-				DrawBoundingBox(i, GetArrayCell(aSelect[i], j), 0.5, { 0, 0, 255, 255 } );
+				DrawBoundingBox(i, GetArrayCell(aSelect[i], j), 0.1, { 0, 0, 255, 255 } );
 			}
 		}
 	}
@@ -577,7 +578,7 @@ public Action sm_fire(int client, int args) {
 	return Plugin_Handled;
 }
 
-stock void ent_fire(int client, char[] target, char[] action, char[] value) {
+public void ent_fire(int client, char[] target, char[] action, char[] value) {
 	int num;
 	if (StrEqual(target, "!self", false)) {
 		int itarget = client;
@@ -760,7 +761,7 @@ stock void ent_fire(int client, char[] target, char[] action, char[] value) {
 	iCounter = 0;
 }
 
-stock void ent_action(int client, int itarget, char[] action, char[] value, bool multiple) {
+public void ent_action(int client, int itarget, char[] action, char[] value, bool multiple) {
 	StopActiveActions(client);
 	iCounter++;
 	if (itarget <= 0 || !IsValidEntity(itarget)) {
@@ -1719,7 +1720,7 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 	else if (StrEqual(action, "mod", false)) {
 		if (StrEqual(value, "")) {
 			if (iCounter == 1)
-				ReplyToCommand(client, "[SM] mod <attrib index/reset> <value/reset>");
+				ReplyToCommand(client, "[SM] mod <attrib index/list/reset> <value/reset>");
 		}
 		else {
 			char part[32][6]; ExplodeString(value, " ", part, 6, sizeof(part));
@@ -1727,6 +1728,29 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 				ResetAttribs(itarget);
 				if (iCounter == 1)
 					ReplyToCommand(client, "[SM] Reset all attributes of target");
+			}
+			else if (StrEqual(part[0], "list")) {
+				char ename[256]; GetEntityClassname(itarget, ename, sizeof(ename));
+				if (StrEqual(ename, "tf_wearable") || StrContains(ename, "tf_weapon") >= 0) {
+					int index = GetEntProp(itarget, Prop_Send, "m_iItemDefinitionIndex");
+					int indexes[16];
+					int values[16];
+					int num = ListAttribs(index, indexes, values);
+					if (num != -1) {
+						for (int i = 0; i < num; i++) {
+							PrintToConsole(client, "Attrib: %i, Value: %.2f", indexes[i], values[i]);
+						}
+						ReplyToCommand(client, "[SM] Printed %i attributes of [%i] to console!", num, index);
+					}
+					else {
+						if (iCounter == 1)
+							ReplyToCommand(client, "[SM] No attributes for that target!");
+					}
+				}
+				else {
+					if (iCounter == 1)
+						ReplyToCommand(client, "[SM] Target must be a weapon or wearable!");
+				}
 			}
 			else {
 				int index = StringToInt(part[0]);
@@ -2022,7 +2046,7 @@ stock void ent_action(int client, int itarget, char[] action, char[] value, bool
 	}
 }
 
-stock void ent_trace(int client, float startpos[3], float startang[3], float endpos[3], int entity, char[] action, char[] value) {
+public void ent_trace(int client, float startpos[3], float startang[3], float endpos[3], int entity, char[] action, char[] value) {
 	if (StrEqual(action, "data", false)) {
 		ReplyToCommand(client, "StartPos: %.0f %.0f %.0f", startpos[0], startpos[1], startpos[2]);
 		ReplyToCommand(client, "StartAng: %.0f %.0f %.0f", startang[0], startang[1], startang[2]);
@@ -2418,7 +2442,7 @@ stock void ent_trace(int client, float startpos[3], float startang[3], float end
 	}
 }
 
-stock void ent_file(int client, char[] action, char[] value) {
+public void ent_file(int client, char[] action, char[] value) {
 	if (StrEqual(action, "create", false)) {
 		if (StrEqual(value, "")) {
 			ReplyToCommand(client, "[SM] create <filename>");
@@ -2671,7 +2695,7 @@ stock void LoadSDKHandles(char[] config) {
 	StartPrepSDKCall(SDKCall_Raw);
 	PrepSDKCall_SetFromConf(cfg, SDKConf_Signature, "CAttributeList::RemoveAttribute");
 	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);
-	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain); //not a clue what this return is
+	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);
 	hRemoveAttribSDK = EndPrepSDKCall();
 	
 	StartPrepSDKCall(SDKCall_Raw);
@@ -2684,6 +2708,12 @@ stock void LoadSDKHandles(char[] config) {
 	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);
 	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);
 	hGetAttribIdSDK = EndPrepSDKCall();
+	
+	StartPrepSDKCall(SDKCall_Raw);
+	PrepSDKCall_SetFromConf(cfg, SDKConf_Signature, "CEconItemSchema::GetItemDefinition");
+	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);
+	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);
+	hItemDefSDK = EndPrepSDKCall();
 }
 
 stock bool SetAttrib(int entity, int index, float value) {
@@ -2713,7 +2743,6 @@ stock bool RemoveAttrib(int entity, int index) {
 	int offs = GetEntSendPropOffs(entity, "m_AttributeList", true);
 	if (offs <= 0)return false;
 	Address pEntity = GetEntityAddress(entity);
-	if (pEntity == Address_Null)return false;
 	if (pEntity == Address_Null)return false;
 	Address pSchema = SDKCall(hItemSchemaSDK);
 	if (pSchema == Address_Null)return false;
@@ -2758,6 +2787,42 @@ stock float GetAttrib(int entity, int index) {
 	res = ((view_as<int>(pAttribDef) >>> 31) > (view_as<int>(Address_MinimumValid) >>> 31)) ? 1 : -1;
 	if (res >= 0)return 0.0;
 	return view_as<float>(LoadFromAddress(pAttribDef + view_as<Address>(8), NumberType_Int32));
+}
+
+stock int ListAttribs(int iItemDefIndex, int iAttribIndices[16], int iAttribValues[16]) {
+	Address pSchema = SDKCall(hItemSchemaSDK);
+	if (pSchema == Address_Null)return -1;
+	Address pItemDef = SDKCall(hItemDefSDK, pSchema, iItemDefIndex);
+	static Address Address_MinimumValid = view_as<Address>(0x10000);
+	if (pItemDef == Address_Null)return -1;
+	int res;
+	if (view_as<int>(pItemDef) == view_as<int>(Address_MinimumValid))res = 0;
+	if ((view_as<int>(pItemDef) >>> 31) == (view_as<int>(Address_MinimumValid) >>> 31)) {
+		res = ((view_as<int>(pItemDef) & 0x7FFFFFFF) > (view_as<int>(Address_MinimumValid) & 0x7FFFFFFF)) ? 1 : -1;
+	}
+	res = ((view_as<int>(pItemDef) >>> 31) > (view_as<int>(Address_MinimumValid) >>> 31)) ? 1 : -1;
+	if (res >= 0)return -1;
+	int iCount = GetStaticAttribs(pItemDef, iAttribIndices, iAttribValues);
+	return iCount;
+}
+
+stock int GetStaticAttribs(Address pItemDef, int iAttribIndices[16], int iAttribValues[16]) {
+	static Address Address_MinimumValid = view_as<Address>(0x10000);
+	if (pItemDef == Address_Null)return 0;
+	int res;
+	if (view_as<int>(pItemDef) == view_as<int>(Address_MinimumValid))res = 0;
+	if ((view_as<int>(pItemDef) >>> 31) == (view_as<int>(Address_MinimumValid) >>> 31)) {
+		res = ((view_as<int>(pItemDef) & 0x7FFFFFFF) > (view_as<int>(Address_MinimumValid) & 0x7FFFFFFF)) ? 1 : -1;
+	}
+	res = ((view_as<int>(pItemDef) >>> 31) > (view_as<int>(Address_MinimumValid) >>> 31)) ? 1 : -1;
+	if (res >= 0)return 0;
+	int iNumAttribs = LoadFromAddress(pItemDef + view_as<Address>(0x28), NumberType_Int32);
+	Address pAttribList = view_as<Address>(LoadFromAddress(pItemDef + view_as<Address>(0x1C), NumberType_Int32));
+	for (int i = 0; i < iNumAttribs && i < 16; i++) {
+		iAttribIndices[i] = LoadFromAddress(pAttribList + view_as<Address>(i * 8), NumberType_Int16);
+		iAttribValues[i] = LoadFromAddress(pAttribList + view_as<Address>(i * 8 + 4), NumberType_Int32);
+	}
+	return iNumAttribs;
 }
 
 stock void RotateVectorAroundPoint(float vector[3], float origin[3], float angles[3]) {
